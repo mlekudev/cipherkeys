@@ -120,7 +120,8 @@ fun KeyboardView(
                     val w = when (key.label) {
                         "\u232B" -> 1.6f; "\u21B5" -> 1.6f
                         "\u21E7" -> 1.4f; "?123" -> 1.6f; "ABC" -> 1.6f; "=\\<" -> 1.6f
-                        " " -> 4.5f; "," -> 0.7f; "." -> 0.7f
+                        " " -> if (mode == KbMode.ALPHA) 4.5f else 3.0f
+                        "," -> 0.7f; "." -> 0.7f; "_" -> 0.8f; "/" -> 0.8f
                         "<" -> 0.7f; ">" -> 0.7f
                         else -> 1f
                     }
@@ -225,12 +226,12 @@ private val SYMBOLS = listOf(
     listOf(KbKey("1"),KbKey("2"),KbKey("3"),KbKey("4"),KbKey("5"),KbKey("6"),KbKey("7"),KbKey("8"),KbKey("9"),KbKey("0")),
     listOf(KbKey("@"),KbKey("#"),KbKey("\$"),KbKey("%"),KbKey("&"),KbKey("-"),KbKey("+"),KbKey("("),KbKey(")")),
     listOf(KbKey("=\\<"),KbKey("*"),KbKey("\""),KbKey("'"),KbKey(":"),KbKey(";"),KbKey("!"),KbKey("?"),KbKey("\u232B")),
-    listOf(KbKey("ABC"),KbKey(","),KbKey(" "),KbKey("."),KbKey("\u21B5")),
+    listOf(KbKey("ABC"),KbKey(","),KbKey("_"),KbKey(" "),KbKey("/"),KbKey("."),KbKey("\u21B5")),
 )
 
 private val SYMBOLS2 = listOf(
     listOf(KbKey("~"),KbKey("`"),KbKey("|"),KbKey("\u221A"),KbKey("\u03C0"),KbKey("\u00F7"),KbKey("\u00D7"),KbKey("\u00B6"),KbKey("\u2206")),
     listOf(KbKey("\u00A3"),KbKey("\u00A2"),KbKey("\u20AC"),KbKey("\u00A5"),KbKey("^"),KbKey("\u00B0"),KbKey("="),KbKey("{"),KbKey("}")),
     listOf(KbKey("=\\<"),KbKey("\\"),KbKey("\u00A9"),KbKey("\u00AE"),KbKey("\u2122"),KbKey("\u2105"),KbKey("["),KbKey("]"),KbKey("\u232B")),
-    listOf(KbKey("ABC"),KbKey(","),KbKey(" "),KbKey("."),KbKey("\u21B5")),
+    listOf(KbKey("ABC"),KbKey(","),KbKey("_"),KbKey(" "),KbKey("/"),KbKey("."),KbKey("\u21B5")),
 )

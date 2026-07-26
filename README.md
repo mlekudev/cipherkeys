@@ -23,6 +23,7 @@ Android keyboard with PGP encryption.
 | [v1.0.0](https://git.smesh.lol/cipherkeys-releases) | 2026-07-25 |
 | [v1.0.1](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 |
 | [v1.0.2](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 |
+| [v1.0.3](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 |
 
 ## Build
 
