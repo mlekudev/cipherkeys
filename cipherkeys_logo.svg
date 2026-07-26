@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="keycap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a4a5a"/>
+      <stop offset="100%" stop-color="#2a2a3a"/>
+    </linearGradient>
+    <linearGradient id="lockBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8c450"/>
+      <stop offset="100%" stop-color="#c49a20"/>
+    </linearGradient>
+  </defs>
+
+  <!-- keycap shadow -->
+  <rect x="50" y="56" width="412" height="412" rx="48" ry="48" fill="#111122" opacity="0.4"/>
+
+  <!-- keycap body -->
+  <rect x="42" y="42" width="412" height="412" rx="48" ry="48" fill="url(#keycap)" stroke="#3a3a4a" stroke-width="4"/>
+
+  <!-- keycap inner bevel -->
+  <rect x="62" y="62" width="372" height="372" rx="38" ry="38" fill="none" stroke="#5a5a6a" stroke-width="2"/>
+
+  <!-- keycap top highlight -->
+  <rect x="48" y="48" width="400" height="40" rx="20" ry="20" fill="#ffffff" opacity="0.06"/>
+
+  <!-- lock shackle (arch) -->
+  <path d="M 176 266 L 176 196 C 176 149 212 118 256 118 C 300 118 336 149 336 196 L 336 266"
+        fill="none" stroke="url(#lockBody)" stroke-width="32" stroke-linecap="round"/>
+
+  <!-- lock body -->
+  <rect x="144" y="250" width="224" height="176" rx="24" ry="24" fill="url(#lockBody)"/>
+
+  <!-- keyhole circle -->
+  <circle cx="256" cy="304" r="24" fill="#2a2a3a"/>
+
+  <!-- keyhole triangle (apex at circle, base at bottom) -->
+  <polygon points="256,304 274,388 238,388" fill="#2a2a3a"/>
+
+  <!-- subtle shine on lock body -->
+  <rect x="152" y="258" width="208" height="12" rx="6" ry="6" fill="#ffffff" opacity="0.15"/>
+</svg>
