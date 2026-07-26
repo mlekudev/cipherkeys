@@ -20,7 +20,7 @@ Android keyboard with PGP encryption.
 
 | Version | Date |
 |---------|------|
-| [v1.0.0](https://orly/cipherkeys-releases) | 2026-07-25 |
+| [v1.0.0](https://git.smesh.lol/cipherkeys-releases) | 2026-07-25 |
 
 ## Build
 
