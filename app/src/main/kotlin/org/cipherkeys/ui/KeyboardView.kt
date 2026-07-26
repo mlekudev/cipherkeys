@@ -128,7 +128,7 @@ fun KeyboardView(
                     val fs = when (key.label) {
                         "\u232B", "\u21B5", "\u21E7" -> 28.sp
                         "?123", "ABC", "=\\<" -> 14.sp
-                        else -> if (isSpecial) 14.sp else 16.sp
+                        else -> if (isSpecial) 14.sp else 20.sp
                     }
                     val displayKey = if (showLockHint && key.label == "\u21B5") key.copy(hint = "\uD83D\uDD12") else key
                     KeyboardKey(
@@ -167,9 +167,10 @@ private fun RowScope.KeyboardKey(
     val scope = rememberCoroutineScope()
     var pressed by remember { mutableStateOf(false) }
     val highlighted = active || pressed
+    val kh = CipherPrefs.keyHeightDp.dp
 
     Box(
-        modifier = Modifier.weight(weight).height(42.dp).clip(RoundedCornerShape(5.dp))
+        modifier = Modifier.weight(weight).height(kh).clip(RoundedCornerShape(5.dp))
             .background(if (highlighted) fg else bg)
             .pointerInput(key) {
                 detectTapGestures(
@@ -198,7 +199,7 @@ private fun RowScope.KeyboardKey(
             Text(
                 text = key.hint,
                 color = if (highlighted) bg.copy(alpha = 0.45f) else hintFg,
-                fontSize = 24.sp,
+                fontSize = 18.sp,
                 modifier = Modifier.align(Alignment.TopEnd).offset(x = (-3).dp, y = 2.dp),
                 textAlign = TextAlign.End,
             )

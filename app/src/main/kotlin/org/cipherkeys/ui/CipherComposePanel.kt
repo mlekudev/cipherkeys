@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -73,12 +74,14 @@ fun CipherComposePanel(
 
     val safeLayout = layoutResult?.takeIf { it.layoutInput.text.length == display.length }
 
+    val maxH = (CipherPrefs.panelLines * 30).dp
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
             .background(bg)
-            .height(160.dp)
+            .heightIn(min = 60.dp, max = maxH)
             .pointerInput(display) {
                 detectTapGestures { offset ->
                     val lr = safeLayout ?: return@detectTapGestures
@@ -113,7 +116,7 @@ fun CipherComposePanel(
                     onTextLayout = { lr ->
                         layoutResult = lr
                         val cursorBottom = lr.getCursorRect(clamped).bottom.toInt()
-                        val panelHeightPx = with(density) { 160.dp.roundToPx() }
+                        val panelHeightPx = with(density) { maxH.roundToPx() }
                         val target = cursorBottom - panelHeightPx + 40
                         if (target > 0 && target > scrollState.value) {
                             scope.launch { scrollState.animateScrollTo(target) }

@@ -30,6 +30,7 @@ import org.cipherkeys.cipher.PgpEngine
 import org.cipherkeys.cipher.RecipientManager
 import org.cipherkeys.settings.CipherSettingsActivity
 import org.cipherkeys.ui.CipherPanel
+import org.cipherkeys.ui.CipherPrefs
 import org.cipherkeys.ui.CipherUiState
 import org.cipherkeys.ui.KeyboardView
 import org.cipherkeys.ui.PendingAction
@@ -52,6 +53,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
 
     override fun onCreate() {
         super.onCreate()
+        CipherPrefs.init(this)
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
@@ -142,7 +144,16 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                         },
                         onEnter = {
                             if (CipherUiState.state.isActive) {
-                                CipherUiState.insertAtCursor("\n")
+                                if (CipherUiState.state.pendingAction != null && CipherUiState.state.composeText.isNotBlank()) {
+                                    val pw = CipherUiState.state.composeText
+                                    when (CipherUiState.state.pendingAction) {
+                                        PendingAction.ENCRYPT -> doEncrypt(pw)
+                                        PendingAction.DECRYPT -> doDecrypt(pw)
+                                        null -> {}
+                                    }
+                                } else {
+                                    CipherUiState.insertAtCursor("\n")
+                                }
                             } else {
                                 currentInputConnection?.commitText("\n", 1)
                             }

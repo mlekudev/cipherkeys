@@ -16,6 +16,7 @@ data class CipherState(
     val pendingAction: PendingAction? = null,
     val savedComposeText: String = "",
     val backspaceKill: Long = 0,
+    val showPassword: Boolean = false,
 )
 
 enum class PendingAction { ENCRYPT, DECRYPT }
@@ -103,5 +104,9 @@ object CipherUiState {
 
     fun cancelBackspaceRepeat() {
         state = state.copy(backspaceKill = state.backspaceKill + 1)
+    }
+
+    fun toggleShowPassword() {
+        state = state.copy(showPassword = !state.showPassword)
     }
 }

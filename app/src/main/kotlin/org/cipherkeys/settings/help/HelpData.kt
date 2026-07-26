@@ -130,4 +130,15 @@ val allHelpEntries = listOf(
         "This arrow closes the Cipher panel. When pointing down (▼), the panel is expanded — tap to collapse. " +
         "When collapsed, the keyboard works like a normal keyboard, typing into the active app.",
         MockView.EXPANDED),
+    HelpEntry("passphrase-bar", "Passphrase Input Mode",
+        "When encrypting with a signing key or decrypting, the keyboard switches to passphrase mode. " +
+        "A red bar appears below the header row saying 'Enter passphrase' with an X button to cancel. " +
+        "The compose panel shows masked characters (••••) and accepts only typing and backspace. " +
+        "Press Enter to submit the passphrase, or tap Encrypt/Decrypt again. " +
+        "Tap the X button or press the back arrow to cancel and restore the original text.",
+        MockView.EXPANDED),
+    HelpEntry("error-bar", "Error Bar",
+        "When an error occurs (wrong passphrase, no recipients, etc.), a red bar appears below the header " +
+        "with the error message and an X button to dismiss it. The error bar is full-width so long messages are visible.",
+        MockView.EXPANDED),
 )

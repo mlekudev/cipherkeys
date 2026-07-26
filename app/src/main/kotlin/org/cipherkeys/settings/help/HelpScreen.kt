@@ -104,6 +104,22 @@ fun HelpScreen(onElementClick: (HelpEntry) -> Unit) {
                             }
                         }
                     }
+                    // Passphrase mode bar mock
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(26.dp).background(Color(0xFFEF5350).copy(alpha = 0.15f))
+                            .clickable { onElementClick(expanded.find { it.id == "passphrase-bar" }!!) }.padding(horizontal = 8.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        Text("Enter passphrase", fontSize = 12.sp, color = Color(0xFFEF5350))
+                    }
+                    // Error bar mock
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(26.dp).background(Color(0xFFEF5350).copy(alpha = 0.15f))
+                            .clickable { onElementClick(expanded.find { it.id == "error-bar" }!!) }.padding(horizontal = 8.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        Text("Error: Wrong passphrase?", fontSize = 12.sp, color = Color(0xFFEF5350))
+                    }
                     Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 2.dp)) {
                         Box(
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(compBg).padding(10.dp, 6.dp).heightIn(min = 54.dp)

@@ -41,6 +41,7 @@ import org.cipherkeys.cipher.RecipientManager
 import org.cipherkeys.settings.help.HelpDetailScreen
 import org.cipherkeys.settings.help.HelpScreen
 import org.cipherkeys.settings.help.allHelpEntries
+import org.cipherkeys.ui.CipherPrefs
 
 class CipherSettingsActivity : ComponentActivity() {
 
@@ -50,6 +51,7 @@ class CipherSettingsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CipherPrefs.init(this)
 
         keyStore = KeyStore(this)
         keyManager = KeyManager(keyStore)
