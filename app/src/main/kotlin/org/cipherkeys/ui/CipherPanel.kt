@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
@@ -28,15 +26,18 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,7 +60,6 @@ fun CipherPanel(
     val panelBg = if (dark) Color(0xFF4A4A4A) else Color(0xFFD6D6D6)
     val panelFg = if (dark) Color(0xFFE0E0E0) else Color(0xFF1A1A1A)
     val dimFg = panelFg.copy(alpha = 0.45f)
-    val accent = if (dark) Color(0xFF90CAF9) else Color(0xFF1565C0)
     val needsPassphrase = state.pendingAction != null
     val enabled = !state.isLoading && state.isActive
 
@@ -84,7 +84,7 @@ fun CipherPanel(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    val tint = if (enabled && state.composeText.isNotEmpty()) accent else dimFg
+                    val tint = if (enabled && state.composeText.isNotEmpty()) panelFg else dimFg
                     IconButton(onClick = onEncrypt, enabled = enabled && state.composeText.isNotEmpty(), modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.Lock, "Encrypt", tint = tint, modifier = Modifier.size(22.dp))
                     }
@@ -126,22 +126,31 @@ fun CipherPanel(
 
         // Passphrase bar
         if (needsPassphrase && state.isActive) {
+            // Brief reveal: show last char for 2s after typing, then re-hide
+            LaunchedEffect(state.composeText) {
+                if (needsPassphrase && !state.showPassword && state.composeText.isNotEmpty()) {
+                    CipherUiState.setRevealLastChar(true)
+                    delay(2000)
+                    CipherUiState.setRevealLastChar(false)
+                }
+            }
+
             Row(
-                modifier = Modifier.fillMaxWidth().height(30.dp).background(Color(0xFFEF5350).copy(alpha = 0.15f)),
+                modifier = Modifier.fillMaxWidth().height(30.dp).background(panelBg),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Enter passphrase", fontSize = 12.sp, color = Color(0xFFEF5350), modifier = Modifier.padding(start = 8.dp))
-                Spacer(Modifier.weight(1f))
-                Text(
-                    if (state.showPassword) "👁" else "—",
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(end = 4.dp).then(
-                        Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
-                            .clickable { CipherUiState.toggleShowPassword() }.padding(4.dp)
+                IconButton(onClick = { CipherUiState.toggleShowPassword() }, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        if (state.showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        "Toggle visibility",
+                        tint = dimFg,
+                        modifier = Modifier.size(18.dp),
                     )
-                )
+                }
+                Text("Enter passphrase", fontSize = 12.sp, color = panelFg, modifier = Modifier.padding(start = 4.dp))
+                Spacer(Modifier.weight(1f))
                 IconButton(onClick = { CipherUiState.cancelPassphrase() }, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Close, "Cancel", tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Close, "Cancel", tint = dimFg, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -149,18 +158,18 @@ fun CipherPanel(
         // Error bar
         if (state.errorMessage != null && state.isActive) {
             Row(
-                modifier = Modifier.fillMaxWidth().height(30.dp).background(Color(0xFFEF5350).copy(alpha = 0.15f)),
+                modifier = Modifier.fillMaxWidth().height(30.dp).background(panelBg),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     state.errorMessage!!,
                     fontSize = 12.sp,
-                    color = Color(0xFFEF5350),
+                    color = dimFg,
                     modifier = Modifier.padding(horizontal = 8.dp).weight(1f),
                     maxLines = 1,
                 )
                 IconButton(onClick = { CipherUiState.clearError() }, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Close, "Dismiss", tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Close, "Dismiss", tint = dimFg, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -178,6 +187,7 @@ fun CipherPanel(
                             else -> ""
                         },
                         isPassword = needsPassphrase && !state.showPassword,
+                        revealLastChar = state.revealLastChar,
                         active = state.isActive,
                     )
                 }

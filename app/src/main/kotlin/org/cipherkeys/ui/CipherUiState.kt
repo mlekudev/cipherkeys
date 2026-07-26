@@ -17,6 +17,7 @@ data class CipherState(
     val savedComposeText: String = "",
     val backspaceKill: Long = 0,
     val showPassword: Boolean = false,
+    val revealLastChar: Boolean = false,
 )
 
 enum class PendingAction { ENCRYPT, DECRYPT }
@@ -108,5 +109,9 @@ object CipherUiState {
 
     fun toggleShowPassword() {
         state = state.copy(showPassword = !state.showPassword)
+    }
+
+    fun setRevealLastChar(v: Boolean) {
+        state = state.copy(revealLastChar = v)
     }
 }

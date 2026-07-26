@@ -49,6 +49,7 @@ fun CipherComposePanel(
     placeholder: String = "Type message to encrypt...",
     isPassword: Boolean = false,
     active: Boolean = true,
+    revealLastChar: Boolean = false,
 ) {
     val dark = isSystemInDarkTheme()
     val bg = if (dark) Color(0xFF222222) else Color(0xFFF0F0F0)
@@ -56,7 +57,11 @@ fun CipherComposePanel(
     val placeholderFg = if (dark) Color(0xFF707070) else Color(0xFF909090)
     val cursorC = if (dark) Color.White else Color.Black
 
-    val display = if (isPassword) "\u2022".repeat(text.length) else text
+    val display = when {
+        !isPassword -> text
+        revealLastChar && text.isNotEmpty() -> "\u2022".repeat(text.length - 1) + text.last()
+        else -> "\u2022".repeat(text.length)
+    }
     val clamped = cursorPos.coerceIn(0, display.length)
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
     val density = LocalDensity.current
