@@ -9,3 +9,4 @@ local.properties
 *.keystore
 .DS_Store
 hs_err_pid*.log
+session-ses_*.md
