@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.Card
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.dp
 fun MainSettingsScreen(
     onKeysClick: () -> Unit,
     onRecipientsClick: () -> Unit,
+    onHelpClick: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -46,6 +48,13 @@ fun MainSettingsScreen(
             subtitle = "Manage encryption recipients and their public keys",
             icon = { Icon(Icons.Default.People, null, tint = MaterialTheme.colorScheme.primary) },
             onClick = onRecipientsClick,
+        )
+        Spacer(Modifier.height(12.dp))
+        SettingsCard(
+            title = "Help",
+            subtitle = "Learn how each button and feature works",
+            icon = { Icon(Icons.Default.Help, null, tint = MaterialTheme.colorScheme.primary) },
+            onClick = onHelpClick,
         )
     }
 }

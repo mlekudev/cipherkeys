@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,6 +49,8 @@ fun KeyboardView(
     onBackspace: () -> Unit,
     onEnter: () -> Unit,
     onSpace: () -> Unit,
+    onEnterLongPress: () -> Unit = {},
+    showLockHint: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val dark = isSystemInDarkTheme()
@@ -60,8 +63,12 @@ fun KeyboardView(
     var mode by remember { mutableStateOf(KbMode.ALPHA) }
     var shift by remember { mutableStateOf(false) }
     var shiftLocked by remember { mutableStateOf(false) }
+    var symLocked by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var backspaceJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
+    val kill = CipherUiState.state.backspaceKill
+    LaunchedEffect(kill) { backspaceJob?.cancel(); backspaceJob = null }
 
     val rows: List<List<KbKey>> = when (mode) {
         KbMode.ALPHA -> if (shift) ALPHA_SHIFT else ALPHA
@@ -78,21 +85,26 @@ fun KeyboardView(
                 if (shiftLocked) { shiftLocked = false; shift = false }
                 else shift = !shift
             }
-            "?123" -> { mode = KbMode.SYM; shift = false; shiftLocked = false }
+            "?123" -> {
+                if (symLocked) { symLocked = false; mode = KbMode.ALPHA }
+                else { mode = KbMode.SYM; shift = false; shiftLocked = false }
+            }
             "=\\<" -> mode = if (mode == KbMode.SYM) KbMode.SYM2 else KbMode.SYM
-            "ABC" -> { mode = KbMode.ALPHA; shift = false; shiftLocked = false }
+            "ABC" -> { symLocked = false; mode = KbMode.ALPHA; shift = false; shiftLocked = false }
             else -> {
                 onChar(key.label)
                 if (shift && !shiftLocked && mode == KbMode.ALPHA) shift = false
+                if (!symLocked && mode != KbMode.ALPHA) mode = KbMode.ALPHA
             }
         }
     }
 
     fun onLongPress(key: KbKey) {
         if (key.label == "\u21E7") {
-            shiftLocked = true
-            shift = true
-            return
+            shiftLocked = true; shift = true; return
+        }
+        if (key.label == "?123") {
+            symLocked = true; mode = KbMode.SYM; return
         }
         key.longPress?.let { onChar(it) }
     }
@@ -118,9 +130,10 @@ fun KeyboardView(
                         "?123", "ABC", "=\\<" -> 14.sp
                         else -> if (isSpecial) 14.sp else 16.sp
                     }
+                    val displayKey = if (showLockHint && key.label == "\u21B5") key.copy(hint = "\uD83D\uDD12") else key
                     KeyboardKey(
-                        key, w, bg, keyFg, hintFg, fs,
-                        active = shift && key.label == "\u21E7",
+                        displayKey, w, bg, keyFg, hintFg, fs,
+                        active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")),
                         onTap = {
                             backspaceJob?.cancel()
                             onKey(key)
@@ -131,6 +144,8 @@ fun KeyboardView(
                                 backspaceJob = scope.launch {
                                     while (true) { onBackspace(); delay(50) }
                                 }
+                            } else if (key.label == "\u21B5") {
+                                onEnterLongPress()
                             } else {
                                 onLongPress(key)
                             }

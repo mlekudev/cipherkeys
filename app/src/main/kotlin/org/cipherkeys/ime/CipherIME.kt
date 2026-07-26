@@ -3,6 +3,8 @@ package org.cipherkeys.ime
 import android.content.Intent
 import android.content.IntentFilter
 import android.inputmethodservice.InputMethodService
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
@@ -77,15 +79,17 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                     } else null
 
                     CipherPanel(
-                        onEncrypt = { onEncryptAction() },
-                        onDecrypt = { onDecryptAction() },
+                        onEncrypt = { CipherUiState.cancelBackspaceRepeat(); onEncryptAction() },
+                        onDecrypt = { CipherUiState.cancelBackspaceRepeat(); onDecryptAction() },
                         onSend = {
+                            CipherUiState.cancelBackspaceRepeat()
                             val ic = currentInputConnection
                             val text = CipherUiState.state.composeText
                             if (ic != null && text.isNotEmpty()) { ic.commitText(text, 1) }
                             CipherUiState.updateComposeText("")
                         },
                         onCopy = {
+                            CipherUiState.cancelBackspaceRepeat()
                             val text = CipherUiState.state.composeText.ifEmpty { CipherUiState.state.decryptedText }
                             if (text.isNotEmpty()) {
                                 (getSystemService(android.content.ClipboardManager::class.java))
@@ -94,6 +98,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             }
                         },
                         onPaste = {
+                            CipherUiState.cancelBackspaceRepeat()
                             val cm = getSystemService(android.content.ClipboardManager::class.java)
                             val clip = cm?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
                             if (clip.isNotEmpty()) {
@@ -101,9 +106,15 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             }
                         },
                         onSettingsClick = {
+                            CipherUiState.cancelBackspaceRepeat()
                             startActivity(Intent(this@CipherIME, CipherSettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                         },
+                        onHelpClick = {
+                            CipherUiState.cancelBackspaceRepeat()
+                            startActivity(Intent(this@CipherIME, CipherSettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("screen", "help"))
+                        },
                         onRecipientsClick = {
+                            CipherUiState.cancelBackspaceRepeat()
                             startActivity(Intent(this@CipherIME, CipherSettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("screen", "recipients"))
                         },
                         signingKeyName = signName,
@@ -121,7 +132,12 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             if (CipherUiState.state.isActive) {
                                 CipherUiState.deleteBeforeCursor()
                             } else {
-                                currentInputConnection?.deleteSurroundingText(1, 0)
+                                val ic = currentInputConnection
+                                if (ic?.getSelectedText(0) != null) {
+                                    ic.commitText("", 1)
+                                } else {
+                                    ic?.deleteSurroundingText(1, 0)
+                                }
                             }
                         },
                         onEnter = {
@@ -138,6 +154,22 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                 currentInputConnection?.commitText(" ", 1)
                             }
                         },
+                        onEnterLongPress = {
+                            CipherUiState.cancelBackspaceRepeat()
+                            val s = CipherUiState.state
+                            if (s.isActive && s.selectedRecipientIds.isNotEmpty() && s.composeText.isNotBlank()) {
+                                encryptAndSend(cachedPassphrase)
+                            } else {
+                                val ic = currentInputConnection
+                                if (ic != null) {
+                                    val ei = currentInputEditorInfo
+                                    val action = ei?.imeOptions?.and(android.view.inputmethod.EditorInfo.IME_MASK_ACTION) ?: 0
+                                    if (action != 0) ic.performEditorAction(action)
+                                    else sendDefaultEditorAction(true)
+                                }
+                            }
+                        },
+                        showLockHint = CipherUiState.state.isActive && CipherUiState.state.selectedRecipientIds.isNotEmpty(),
                     )
                 }
             }
@@ -205,6 +237,35 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             } catch (e: CipherException) { cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase(); CipherUiState.setError(e.message ?: "Encrypt failed") }
             catch (e: Exception) { cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase(); CipherUiState.setError("Error: ${e.message}") }
             finally { CipherUiState.setLoading(false) }
+        }
+    }
+
+    private fun encryptAndSend(pw: String?) {
+        val s = CipherUiState.state; CipherUiState.setLoading(true)
+        cryptoExecutor.execute {
+            try {
+                val recips = s.selectedRecipientIds.mapNotNull { recipientManager.getRecipientPublicKey(it) }
+                if (recips.isEmpty()) { CipherUiState.setError("No valid recipient keys"); return@execute }
+                val signKey = s.selectedSigningKeyId?.let { keyManager.getSecretKeyRing(it) }
+                val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
+                val r = pgpEngine.encryptArmored(msg, recips, signKey, pw)
+                if (pw != null) cachedPassphrase = pw
+                Handler(Looper.getMainLooper()).post {
+                    val ic = currentInputConnection
+                    if (ic != null) {
+                        ic.commitText(r, 1)
+                        val ei = currentInputEditorInfo
+                        val action = ei?.imeOptions?.and(android.view.inputmethod.EditorInfo.IME_MASK_ACTION) ?: 0
+                        if (action != 0) ic.performEditorAction(action)
+                        else sendDefaultEditorAction(true)
+                    }
+                    CipherUiState.clearText()
+                    CipherUiState.clearPendingAndSaved()
+                    CipherUiState.clearError()
+                    CipherUiState.setLoading(false)
+                }
+            } catch (e: CipherException) { CipherUiState.setError(e.message ?: "Encrypt failed"); CipherUiState.setLoading(false) }
+            catch (e: Exception) { CipherUiState.setError("Error: ${e.message}"); CipherUiState.setLoading(false) }
         }
     }
 

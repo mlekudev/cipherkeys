@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
@@ -45,6 +46,7 @@ fun CipherPanel(
     onCopy: () -> Unit,
     onPaste: () -> Unit,
     onSettingsClick: () -> Unit,
+    onHelpClick: () -> Unit,
     onRecipientsClick: () -> Unit,
     signingKeyName: String?,
     modifier: Modifier = Modifier,
@@ -104,6 +106,9 @@ fun CipherPanel(
                     }
                     IconButton(onClick = onSettingsClick, modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.Settings, "Settings", tint = dimFg, modifier = Modifier.size(20.dp))
+                    }
+                    IconButton(onClick = onHelpClick, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Help, "Help", tint = dimFg, modifier = Modifier.size(20.dp))
                     }
                     if (needsPassphrase) {
                         Text(" passphrase", style = MaterialTheme.typography.bodySmall, color = Color(0xFFEF5350))

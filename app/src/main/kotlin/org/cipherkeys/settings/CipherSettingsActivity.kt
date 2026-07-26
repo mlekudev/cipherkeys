@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -19,6 +21,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,6 +38,9 @@ import androidx.navigation.compose.rememberNavController
 import org.cipherkeys.cipher.KeyManager
 import org.cipherkeys.cipher.KeyStore
 import org.cipherkeys.cipher.RecipientManager
+import org.cipherkeys.settings.help.HelpDetailScreen
+import org.cipherkeys.settings.help.HelpScreen
+import org.cipherkeys.settings.help.allHelpEntries
 
 class CipherSettingsActivity : ComponentActivity() {
 
@@ -51,7 +58,10 @@ class CipherSettingsActivity : ComponentActivity() {
         val startScreen = intent.getStringExtra("screen") ?: "settings"
 
         setContent {
-            MaterialTheme {
+            val dark = isSystemInDarkTheme()
+            MaterialTheme(
+                colorScheme = if (dark) darkColorScheme() else lightColorScheme(),
+            ) {
                 SettingsNav(
                     keyManager = keyManager,
                     recipientManager = recipientManager,
@@ -110,6 +120,7 @@ fun SettingsNav(
                 MainSettingsScreen(
                     onKeysClick = { navController.navigate("keys") },
                     onRecipientsClick = { navController.navigate("recipients") },
+                    onHelpClick = { navController.navigate("help") },
                 )
             }
             composable("keys") {
@@ -147,6 +158,16 @@ fun SettingsNav(
             composable("about") {
                 AboutScreen()
             }
+            composable("help") {
+                HelpScreen(onElementClick = { entry -> navController.navigate("help/${entry.id}") })
+            }
+            composable("help/{id}") { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("id") ?: ""
+                val entry = allHelpEntries.find { it.id == id }
+                if (entry != null) {
+                    HelpDetailScreen(entry = entry)
+                }
+            }
         }
     }
 }
@@ -155,6 +176,8 @@ fun SettingsNav(
 private fun getTitle(route: String?): String {
     return when {
         route == null -> "CipherKeys Settings"
+        route.startsWith("help/") -> "Help"
+        route == "help" -> "Help"
         route.startsWith("keys/generate") -> "Generate Key"
         route.startsWith("keys/import") -> "Import Key"
         route.startsWith("keys") -> "Keys"
