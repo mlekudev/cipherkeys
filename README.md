@@ -20,10 +20,12 @@ Android keyboard with PGP encryption.
 
 | Version | Date |
 |---------|------|
-| [v1.0.0](https://git.smesh.lol/cipherkeys-releases) | 2026-07-25 |
-| [v1.0.1](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 |
-| [v1.0.2](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 |
-| [v1.0.3](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 |
+| Version | Date | Download |
+|---------|------|----------|
+| [v1.0.0](https://git.smesh.lol/cipherkeys-releases) | 2026-07-25 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/branch/dev/app-v1.0.0.apk) |
+| [v1.0.1](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/branch/dev/app-v1.0.1.apk) |
+| [v1.0.2](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/branch/dev/app-v1.0.2.apk) |
+| [v1.0.3](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/branch/dev/app-v1.0.3.apk) |
 
 ## Build
 
