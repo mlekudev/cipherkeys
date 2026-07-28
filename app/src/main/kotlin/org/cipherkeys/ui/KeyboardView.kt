@@ -134,7 +134,7 @@ fun KeyboardView(
                     val displayKey = if (showLockHint && key.label == "\u21B5") key.copy(hint = "\uD83D\uDD12") else key
                     KeyboardKey(
                         displayKey, w, bg, keyFg, hintFg, fs,
-                        active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")),
+                        active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")) || (mode == KbMode.SYM2 && key.label == "=\\<"),
                         onTap = {
                             backspaceJob?.cancel()
                             onKey(key)
@@ -233,5 +233,5 @@ private val SYMBOLS2 = listOf(
     listOf(KbKey("~"),KbKey("`"),KbKey("|"),KbKey("\u221A"),KbKey("\u03C0"),KbKey("\u00F7"),KbKey("\u00D7"),KbKey("\u00B6"),KbKey("\u2206")),
     listOf(KbKey("\u00A3"),KbKey("\u00A2"),KbKey("\u20AC"),KbKey("\u00A5"),KbKey("^"),KbKey("\u00B0"),KbKey("="),KbKey("{"),KbKey("}")),
     listOf(KbKey("=\\<"),KbKey("\\"),KbKey("\u00A9"),KbKey("\u00AE"),KbKey("\u2122"),KbKey("\u2105"),KbKey("["),KbKey("]"),KbKey("\u232B")),
-    listOf(KbKey("ABC"),KbKey(","),KbKey("_"),KbKey(" "),KbKey("/"),KbKey("."),KbKey("\u21B5")),
+    listOf(KbKey("ABC"),KbKey(","),KbKey("<"),KbKey(" "),KbKey(">"),KbKey("."),KbKey("\u21B5")),
 )

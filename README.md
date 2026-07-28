@@ -27,6 +27,7 @@ Android keyboard with PGP encryption.
 | [v1.0.2](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.2.apk) |
 | [v1.0.3](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.3.apk) |
 | [v1.0.4](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.4.apk) |
+| [v1.0.5](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.5.apk) |
 
 ## Build
 
