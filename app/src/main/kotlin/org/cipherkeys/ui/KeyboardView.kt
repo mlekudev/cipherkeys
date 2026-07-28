@@ -64,11 +64,17 @@ fun KeyboardView(
     var shift by remember { mutableStateOf(false) }
     var shiftLocked by remember { mutableStateOf(false) }
     var symLocked by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    var backspaceJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var backspaceRepeat by remember { mutableStateOf(false) }
 
+    // Cancel repeat on any external action (paste, encrypt, settings, etc.)
     val kill = CipherUiState.state.backspaceKill
-    LaunchedEffect(kill) { backspaceJob?.cancel(); backspaceJob = null }
+    LaunchedEffect(kill) { backspaceRepeat = false }
+
+    LaunchedEffect(backspaceRepeat) {
+        if (backspaceRepeat) {
+            while (true) { onBackspace(); delay(50) }
+        }
+    }
 
     val rows: List<List<KbKey>> = when (mode) {
         KbMode.ALPHA -> if (shift) ALPHA_SHIFT else ALPHA
@@ -136,15 +142,12 @@ fun KeyboardView(
                         displayKey, w, bg, keyFg, hintFg, fs,
                         active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")) || (mode == KbMode.SYM2 && key.label == "=\\<"),
                         onTap = {
-                            backspaceJob?.cancel()
+                            backspaceRepeat = false
                             onKey(key)
                         },
                         onLongPress = {
                             if (key.label == "\u232B") {
-                                backspaceJob?.cancel()
-                                backspaceJob = scope.launch {
-                                    while (true) { onBackspace(); delay(50) }
-                                }
+                                backspaceRepeat = true
                             } else if (key.label == "\u21B5") {
                                 onEnterLongPress()
                             } else {
