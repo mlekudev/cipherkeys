@@ -1,6 +1,7 @@
 package org.cipherkeys.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -154,6 +156,9 @@ fun KeyboardView(
                                 onLongPress(key)
                             }
                         },
+                        onRelease = {
+                            backspaceRepeat = false
+                        },
                     )
                 }
             }
@@ -166,29 +171,63 @@ private fun RowScope.KeyboardKey(
     key: KbKey, weight: Float, bg: Color, fg: Color, hintFg: Color, fs: androidx.compose.ui.unit.TextUnit,
     active: Boolean = false,
     onTap: () -> Unit, onLongPress: () -> Unit,
+    onRelease: () -> Unit = {},
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     var pressed by remember { mutableStateOf(false) }
     val highlighted = active || pressed
     val kh = CipherPrefs.keyHeightDp.dp
+    val isBackspace = key.label == "\u232B"
 
     Box(
         modifier = Modifier.weight(weight).height(kh).clip(RoundedCornerShape(5.dp))
             .background(if (highlighted) fg else bg)
             .pointerInput(key) {
-                detectTapGestures(
-                    onTap = {
-                        if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                        onTap()
-                    },
-                    onLongPress = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        pressed = true
-                        onLongPress()
-                        scope.launch { delay(100); pressed = false }
-                    },
-                )
+                if (isBackspace) {
+                    coroutineScope {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                            var longPressTriggered = false
+                            val longPressJob = launch {
+                                delay(longPressTimeout.toLong())
+                                longPressTriggered = true
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                pressed = true
+                                onLongPress()
+                            }
+                            // Wait for release
+                            var released = false
+                            while (!released) {
+                                val event = awaitPointerEvent()
+                                if (event.changes.all { it.isConsumed || !it.pressed }) released = true
+                            }
+                            longPressJob.cancel()
+                            pressed = false
+                            onRelease()
+                            if (!longPressTriggered) {
+                                if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                                onTap()
+                            }
+                        }
+                    }
+                    }
+                } else {
+                    detectTapGestures(
+                        onTap = {
+                            if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                            onTap()
+                        },
+                        onLongPress = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            pressed = true
+                            onLongPress()
+                            scope.launch { delay(100); pressed = false }
+                        },
+                    )
+                }
             },
         contentAlignment = Alignment.Center,
     ) {
