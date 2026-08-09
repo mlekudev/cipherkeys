@@ -1,9 +1,8 @@
 package org.cipherkeys.ui
 
 import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioManager
-import android.media.AudioTrack
+import android.media.SoundPool
+import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -72,43 +71,59 @@ fun KeyboardView(
 
     val haptic = LocalHapticFeedback.current
 
-    val clickTrack = remember {
-        val sampleRate = 44100
-        val durationMs = 15
-        val numSamples = (sampleRate * durationMs / 1000)
-        val buffer = ShortArray(numSamples)
-        val rng = java.util.Random()
-        for (i in buffer.indices) {
-            val env = 1f - i.toFloat() / numSamples
-            buffer[i] = (rng.nextGaussian() * 16384 * env * env).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
-        }
-        AudioTrack(
-            AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build(),
-            AudioFormat.Builder()
-                .setSampleRate(sampleRate)
-                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                .build(),
-            numSamples,
-            AudioTrack.MODE_STATIC,
-            AudioManager.AUDIO_SESSION_ID_GENERATE,
-        ).apply { write(buffer, 0, numSamples) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val clickSoundId = remember {
+        try {
+            val sampleRate = 44100
+            val durationMs = 12
+            val numSamples = sampleRate * durationMs / 1000
+            val buffer = ShortArray(numSamples)
+            val rng = java.util.Random()
+            for (i in buffer.indices) {
+                val env = 1f - i.toFloat() / numSamples
+                buffer[i] = (rng.nextGaussian() * 16384 * env * env)
+                    .toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+            val rawSize = numSamples * 2
+            val wavSize = 44 + rawSize
+            val wav = java.io.ByteArrayOutputStream()
+            fun le32(v: Int) { wav.write(v and 0xFF); wav.write((v shr 8) and 0xFF); wav.write((v shr 16) and 0xFF); wav.write((v shr 24) and 0xFF) }
+            fun le16(v: Int) { wav.write(v and 0xFF); wav.write((v shr 8) and 0xFF) }
+            wav.write("RIFF".toByteArray())
+            le32(wavSize - 8)
+            wav.write("WAVE".toByteArray())
+            wav.write("fmt ".toByteArray())
+            le32(16); le16(1); le16(1); le32(sampleRate)
+            le32(sampleRate * 2); le16(2); le16(16)
+            wav.write("data".toByteArray())
+            le32(rawSize)
+            for (s in buffer) { le16(s.toInt() and 0xFFFF) }
+            val file = File(context.cacheDir, "click.wav")
+            file.writeBytes(wav.toByteArray())
+            val pool = SoundPool.Builder()
+                .setMaxStreams(2)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                .build()
+            val id = pool.load(file.absolutePath, 1)
+            Pair(pool, id)
+        } catch (_: Exception) { null }
     }
 
     DisposableEffect(Unit) {
-        onDispose { clickTrack.release() }
+        onDispose { clickSoundId?.first?.release() }
     }
 
     fun playClick() {
         if (!CipherPrefs.soundEnabled) return
-        clickTrack.stop()
-        clickTrack.reloadStaticData()
+        val (pool, id) = clickSoundId ?: return
         val vol = CipherPrefs.soundVolume
-        clickTrack.setVolume(vol)
-        clickTrack.play()
+        pool.play(id, vol, vol, 1, 0, 1f)
     }
 
     fun doHaptic() {
