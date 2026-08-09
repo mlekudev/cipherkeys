@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -296,6 +297,7 @@ private fun RowScope.KeyboardKey(
     val kh = CipherPrefs.keyHeightDp.dp
     val isBackspace = key.label == "\u232B"
     var posInRoot by remember { mutableStateOf(IntOffset.Zero) }
+    var keyWidthPx by remember { mutableIntStateOf(0) }
     var hasPosition by remember { mutableStateOf(false) }
     val density = LocalDensity.current
 
@@ -330,7 +332,7 @@ private fun RowScope.KeyboardKey(
     val keyContent = @Composable {
         Box(
             modifier = Modifier.fillMaxWidth().height(kh)
-                .onGloballyPositioned { posInRoot = it.positionInRoot().round(); hasPosition = true }
+                .onGloballyPositioned { posInRoot = it.positionInRoot().round(); keyWidthPx = it.size.width; hasPosition = true }
                 .background(if (highlighted) fg else bg, RoundedCornerShape(5.dp))
                 .pointerInput(key) {
                     if (isBackspace) {
@@ -438,7 +440,8 @@ private fun RowScope.KeyboardKey(
                         anchorBounds: IntRect, windowSize: IntSize,
                         layoutDirection: LayoutDirection, popupContentSize: IntSize,
                     ): IntOffset {
-                        val x = (posInRoot.x - popupContentSize.width / 2).coerceIn(0, windowSize.width - popupContentSize.width)
+                        val keyCenterX = posInRoot.x + keyWidthPx / 2
+                        val x = (keyCenterX - popupContentSize.width / 2).coerceIn(0, windowSize.width - popupContentSize.width)
                         val y = posInRoot.y - popupContentSize.height - offsetPx
                         return IntOffset(x, y.coerceAtLeast(0))
                     }
