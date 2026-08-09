@@ -321,7 +321,7 @@ private fun RowScope.KeyboardKey(
 
     val keyContent = @Composable {
         Box(
-            modifier = Modifier.height(kh)
+            modifier = Modifier.fillMaxWidth().height(kh)
                 .onGloballyPositioned { posInRoot = it.positionInRoot().round() }
                 .background(if (highlighted) fg else bg, RoundedCornerShape(5.dp))
                 .pointerInput(key) {
