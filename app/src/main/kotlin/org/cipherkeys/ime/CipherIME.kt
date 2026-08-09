@@ -130,17 +130,25 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             val cm = getSystemService(android.content.ClipboardManager::class.java)
                             val clip = cm?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
                             if (clip.isNotEmpty()) {
-                                val extracted = pgpEngine.extractPlaintext(clip)
-                                if (extracted != null) {
-                                    val stripped = pgpEngine.stripExpiration(extracted)
+                                val allPubKeys = keyManager.listKeys().mapNotNull { keyManager.getPublicKeyRing(it.keyId) }
+                                val result = pgpEngine.verifySigned(clip, allPubKeys)
+                                if (result != null) {
+                                    val stripped = pgpEngine.stripExpiration(result.plaintext)
                                     CipherUiState.insertTextAtCursor(stripped)
-                                    if (pgpEngine.checkExpired(extracted)) {
+                                    if (pgpEngine.checkExpired(result.plaintext)) {
                                         CipherUiState.setInfo("Message expired", isWarning = true)
                                     } else {
                                         CipherUiState.setInfo("Message valid", isWarning = false)
                                     }
                                 } else {
-                                    CipherUiState.insertTextAtCursor(clip)
+                                    val extracted = pgpEngine.extractPlaintext(clip)
+                                    if (extracted != null) {
+                                        val stripped = pgpEngine.stripExpiration(extracted)
+                                        CipherUiState.insertTextAtCursor(stripped)
+                                        CipherUiState.setInfo("Invalid signature", isWarning = true)
+                                    } else {
+                                        CipherUiState.insertTextAtCursor(clip)
+                                    }
                                 }
                             }
                         },

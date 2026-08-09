@@ -4,6 +4,7 @@ import org.bouncycastle.openpgp.PGPPublicKeyRing
 import org.bouncycastle.openpgp.PGPSecretKeyRing
 import org.pgpainless.PGPainless
 import org.pgpainless.algorithm.DocumentSignatureType
+import org.pgpainless.algorithm.HashAlgorithm
 import org.pgpainless.decryption_verification.ConsumerOptions
 import org.pgpainless.encryption_signing.EncryptionOptions
 import org.pgpainless.encryption_signing.ProducerOptions
@@ -136,7 +137,8 @@ class PgpEngine {
             Passphrase.fromPassword(passphrase)
         )
         val signingOptions = SigningOptions.get()
-            .addDetachedSignature(
+            .overrideHashAlgorithm(HashAlgorithm.SHA256)
+            .addInlineSignature(
                 protector,
                 secretKey,
                 DocumentSignatureType.CANONICAL_TEXT_DOCUMENT
@@ -144,6 +146,7 @@ class PgpEngine {
 
         val producerOptions = ProducerOptions.sign(signingOptions).apply {
             setAsciiArmor(true)
+            setCleartextSigned()
         }
 
         val out = ByteArrayOutputStream()
@@ -153,9 +156,39 @@ class PgpEngine {
 
         stream.write(text.toByteArray(Charsets.UTF_8))
         stream.close()
+        return String(out.toByteArray())
+    }
 
-        val armoredSig = String(out.toByteArray())
-        return "-----BEGIN PGP SIGNED MESSAGE-----\nHash: SHA256\n\n${text}\n$armoredSig"
+    fun verifySigned(
+        signedMessage: String,
+        publicKeys: List<PGPPublicKeyRing>
+    ): VerificationResult? {
+        if (publicKeys.isEmpty()) return null
+        try {
+            val options = ConsumerOptions.get()
+            for (key in publicKeys) options.addVerificationCert(key)
+            val input = ByteArrayInputStream(signedMessage.toByteArray(Charsets.UTF_8))
+            val output = ByteArrayOutputStream()
+            val stream = PGPainless.decryptAndOrVerify()
+                .onInputStream(input)
+                .withOptions(options)
+            stream.use { ds ->
+                val buf = ByteArray(4096)
+                var n: Int
+                while (ds.read(buf).also { n = it } != -1) output.write(buf, 0, n)
+                val meta = ds.metadata
+                if (meta.verifiedSignatures.isNotEmpty()) {
+                    val sig = meta.verifiedSignatures.first()
+                    return VerificationResult(
+                        keyId = sig.signingKey.fingerprint.keyId,
+                        verified = true,
+                        algorithm = sig.signature.hashAlgorithm.toString(),
+                        plaintext = String(output.toByteArray())
+                    )
+                }
+            }
+        } catch (_: Exception) {}
+        return null
     }
 
     fun extractPlaintext(signedMessage: String): String? {
