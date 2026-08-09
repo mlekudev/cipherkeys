@@ -86,10 +86,21 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                         onDecrypt = { CipherUiState.cancelBackspaceRepeat(); onDecryptAction() },
                         onSend = {
                             CipherUiState.cancelBackspaceRepeat()
-                            val ic = currentInputConnection
-                            val text = CipherUiState.state.composeText
-                            if (ic != null && text.isNotEmpty()) { ic.commitText(text, 1) }
-                            CipherUiState.updateComposeText("")
+                            val s = CipherUiState.state
+                            if (s.isActive && s.selectedRecipientIds.isNotEmpty() && s.composeText.isNotBlank()) {
+                                encryptAndSend(cachedPassphrase)
+                            } else if (s.isActive && s.selectedRecipientIds.isEmpty() && s.composeText.isNotBlank()) {
+                                if (recipientManager.listRecipients().isEmpty()) {
+                                    CipherUiState.setError("Add recipients via person icon")
+                                } else {
+                                    CipherUiState.showRecipientPicker(sendAfter = true)
+                                }
+                            } else {
+                                val ic = currentInputConnection
+                                val text = s.composeText
+                                if (ic != null && text.isNotEmpty()) { ic.commitText(text, 1) }
+                                CipherUiState.updateComposeText("")
+                            }
                         },
                         onCopy = {
                             CipherUiState.cancelBackspaceRepeat()
@@ -187,8 +198,14 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                         onEnterLongPress = {
                             CipherUiState.cancelBackspaceRepeat()
                             val s = CipherUiState.state
-                            if (s.isActive && s.selectedRecipientIds.isNotEmpty() && s.composeText.isNotBlank()) {
-                                encryptAndSend(cachedPassphrase)
+                            if (s.isActive && s.composeText.isNotBlank()) {
+                                if (s.selectedRecipientIds.isNotEmpty()) {
+                                    encryptAndSend(cachedPassphrase)
+                                } else if (recipientManager.listRecipients().isEmpty()) {
+                                    CipherUiState.setError("Add recipients via person icon")
+                                } else {
+                                    CipherUiState.showRecipientPicker(sendAfter = true)
+                                }
                             } else {
                                 val ic = currentInputConnection
                                 if (ic != null) {

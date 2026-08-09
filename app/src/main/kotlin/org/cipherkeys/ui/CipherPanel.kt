@@ -251,8 +251,9 @@ fun CipherPanel(
                         Spacer(Modifier.width(4.dp))
                         IconButton(
                             onClick = {
+                                val sendAfter = CipherUiState.shouldSendAfterPicker()
                                 CipherUiState.hideRecipientPicker()
-                                onEncrypt()
+                                if (sendAfter) onSend() else onEncrypt()
                             },
                             enabled = state.selectedRecipientIds.isNotEmpty(),
                             modifier = Modifier.height(28.dp),

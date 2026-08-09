@@ -19,6 +19,7 @@ data class CipherState(
     val showPassword: Boolean = false,
     val revealLastChar: Boolean = false,
     val showRecipientPicker: Boolean = false,
+    val pendingSendAfterPicker: Boolean = false,
 )
 
 enum class PendingAction { ENCRYPT, DECRYPT }
@@ -116,11 +117,13 @@ object CipherUiState {
         state = state.copy(revealLastChar = v)
     }
 
-    fun showRecipientPicker() {
-        state = state.copy(showRecipientPicker = true, errorMessage = null)
+    fun showRecipientPicker(sendAfter: Boolean = false) {
+        state = state.copy(showRecipientPicker = true, pendingSendAfterPicker = sendAfter, errorMessage = null)
     }
 
     fun hideRecipientPicker() {
-        state = state.copy(showRecipientPicker = false)
+        state = state.copy(showRecipientPicker = false, pendingSendAfterPicker = false)
     }
+
+    fun shouldSendAfterPicker(): Boolean = state.pendingSendAfterPicker
 }
