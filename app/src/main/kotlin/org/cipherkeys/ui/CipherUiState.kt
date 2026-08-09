@@ -26,6 +26,7 @@ data class CipherState(
     val signExpiryPast: Boolean = false,
     val infoMessage: String? = null,
     val infoIsWarning: Boolean = false,
+    val shiftResetSerial: Long = 0L,
 )
 
 enum class PendingAction { ENCRYPT, DECRYPT, SIGN }
@@ -51,6 +52,7 @@ object CipherUiState {
         state = state.copy(
             savedComposeText = state.composeText, composeText = "",
             cursorPos = 0, pendingAction = action, errorMessage = null,
+            shiftResetSerial = state.shiftResetSerial + 1,
         )
     }
     fun cancelPassphrase() {
