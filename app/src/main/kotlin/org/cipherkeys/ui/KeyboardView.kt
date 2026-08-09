@@ -80,12 +80,9 @@ fun KeyboardView(
     val hintFg = keyFg.copy(alpha = 0.45f)
     val keyBg = if (CipherPrefs.keyBgShading) rawKeyBg else kbBg
     val specialBg = if (CipherPrefs.keyBgShading) rawSpecialBg else kbBg
-    val popoverBg = if (dark) Color(0xFF333333) else Color(0xFFCCCCCC)
-    val popoverFg = if (dark) Color.White else Color.Black
 
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
-    val density = LocalDensity.current
 
     val clickSoundId = remember {
         try {
@@ -151,27 +148,7 @@ fun KeyboardView(
     var shiftLocked by remember { mutableStateOf(false) }
     var symLocked by remember { mutableStateOf(false) }
     var backspaceRepeat by remember { mutableStateOf(false) }
-
-    var popoverLabel by remember { mutableStateOf<String?>(null) }
-    var popoverPos by remember { mutableStateOf(IntOffset.Zero) }
     var popoverSerial by remember { mutableStateOf(0L) }
-    var popoverActive by remember { mutableStateOf(0L) }
-
-    LaunchedEffect(popoverActive) {
-        if (popoverActive > 0L) {
-            delay(300)
-            popoverLabel = null
-            popoverActive = 0L
-        }
-    }
-
-    fun showPopover(pos: IntOffset, label: String, serial: Long) {
-        if (!CipherPrefs.popupEnabled || label.length != 1) return
-        popoverPos = pos
-        popoverLabel = label
-        popoverSerial = serial
-        popoverActive = serial
-    }
 
     val kill = CipherUiState.state.backspaceKill
     LaunchedEffect(kill) { backspaceRepeat = false }
@@ -180,6 +157,11 @@ fun KeyboardView(
         if (backspaceRepeat) {
             while (true) { onBackspace(); delay(50) }
         }
+    }
+
+    fun bumpPopoverSerial(): Long {
+        popoverSerial++
+        return popoverSerial
     }
 
     val rows: List<List<KbKey>> = when (mode) {
@@ -235,96 +217,62 @@ fun KeyboardView(
     val shiftNeedDoubleTap = shiftDoubleTap || CipherPrefs.shiftLockMethod == "off" && shiftLocked
     val symNeedDoubleTap = symDoubleTap || CipherPrefs.symLockMethod == "off" && symLocked
 
-    var nextSerial by remember { mutableStateOf(0L) }
-
-    Box(modifier = modifier) {
-        Column(
-            modifier = Modifier.fillMaxWidth().background(kbBg).padding(horizontal = 3.dp, vertical = 3.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            rows.forEach { row ->
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    row.forEach { key ->
-                        val isSpecial = key.label.length > 1
-                        val w = when (key.label) {
-                            "\u232B" -> 1.6f; "\u21B5" -> 1.6f
-                            "\u21E7" -> 1.4f; "?123" -> 1.6f; "ABC" -> 1.6f; "=\\<" -> 1.6f
-                            " " -> if (mode == KbMode.ALPHA) 4.5f else 3.0f
-                            "," -> 0.7f; "." -> 0.7f; "_" -> 0.8f; "/" -> 0.8f
-                            "<" -> 0.7f; ">" -> 0.7f
-                            else -> 1f
-                        }
-                        val bg = if (isSpecial) specialBg else keyBg
-                        val fs = when (key.label) {
-                            "\u232B", "\u21B5", "\u21E7" -> 28.sp
-                            "?123", "ABC", "=\\<" -> 14.sp
-                            else -> if (isSpecial) 14.sp else 20.sp
-                        }
-                        val displayKey = if (showLockHint && key.label == "\u21B5")
-                            key.copy(hint = "\uD83D\uDD12") else key
-                        val useDoubleTap =
-                            (key.label == "\u21E7" && shiftNeedDoubleTap) ||
-                                (key.label == "?123" && symNeedDoubleTap)
-                        KeyboardKey(
-                            displayKey, w, bg, keyFg, hintFg, fs,
-                            active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")) || (mode == KbMode.SYM2 && key.label == "=\\<"),
-                            onTap = {
-                                backspaceRepeat = false
-                                doHaptic()
-                                playClick()
-                                onKey(key)
-                            },
-                            onDoubleTap = if (useDoubleTap) {
-                                { onDoubleTap(key) }
-                            } else null,
-                            onLongPress = if (useDoubleTap) null else {
-                                {
-                                    if (key.label == "\u232B") {
-                                        backspaceRepeat = true
-                                    } else if (key.label == "\u21B5") {
-                                        onEnterLongPress()
-                                    } else {
-                                        onLongPress(key)
-                                    }
-                                }
-                            },
-                            onRelease = {
-                                backspaceRepeat = false
-                            },
-                            onShowPopover = { pos ->
-                                if (CipherPrefs.popupEnabled && key.label.length == 1) {
-                                    val serial = nextSerial + 1
-                                    nextSerial = serial
-                                    showPopover(pos, key.label, serial)
-                                }
-                            },
-                        )
+    Column(
+        modifier = modifier.fillMaxWidth().background(kbBg).padding(horizontal = 3.dp, vertical = 3.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        rows.forEach { row ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                row.forEach { key ->
+                    val isSpecial = key.label.length > 1
+                    val w = when (key.label) {
+                        "\u232B" -> 1.6f; "\u21B5" -> 1.6f
+                        "\u21E7" -> 1.4f; "?123" -> 1.6f; "ABC" -> 1.6f; "=\\<" -> 1.6f
+                        " " -> if (mode == KbMode.ALPHA) 4.5f else 3.0f
+                        "," -> 0.7f; "." -> 0.7f; "_" -> 0.8f; "/" -> 0.8f
+                        "<" -> 0.7f; ">" -> 0.7f
+                        else -> 1f
                     }
-                }
-            }
-        }
-
-        if (popoverLabel != null) {
-            val offsetPx = with(density) { 8.dp.roundToPx() }
-            Popup(
-                popupPositionProvider = object : PopupPositionProvider {
-                    override fun calculatePosition(
-                        anchorBounds: IntRect, windowSize: IntSize,
-                        layoutDirection: LayoutDirection, popupContentSize: IntSize,
-                    ): IntOffset {
-                        val x = (popoverPos.x - popupContentSize.width / 2).coerceIn(0, windowSize.width - popupContentSize.width)
-                        val y = popoverPos.y - popupContentSize.height - offsetPx
-                        return IntOffset(x, y.coerceAtLeast(0))
+                    val bg = if (isSpecial) specialBg else keyBg
+                    val fs = when (key.label) {
+                        "\u232B", "\u21B5", "\u21E7" -> 28.sp
+                        "?123", "ABC", "=\\<" -> 14.sp
+                        else -> if (isSpecial) 14.sp else 20.sp
                     }
-                },
-                properties = PopupProperties(focusable = false),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(popoverBg, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                ) {
-                    Text(popoverLabel!!, color = popoverFg, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+                    val displayKey = if (showLockHint && key.label == "\u21B5")
+                        key.copy(hint = "\uD83D\uDD12") else key
+                    val useDoubleTap =
+                        (key.label == "\u21E7" && shiftNeedDoubleTap) ||
+                            (key.label == "?123" && symNeedDoubleTap)
+                    KeyboardKey(
+                        displayKey, w, bg, keyFg, hintFg, fs,
+                        active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")) || (mode == KbMode.SYM2 && key.label == "=\\<"),
+                        popoverSerial = popoverSerial,
+                        bumpPopoverSerial = { bumpPopoverSerial() },
+                        onTap = {
+                            backspaceRepeat = false
+                            doHaptic()
+                            playClick()
+                            onKey(key)
+                        },
+                        onDoubleTap = if (useDoubleTap) {
+                            { onDoubleTap(key) }
+                        } else null,
+                        onLongPress = if (useDoubleTap) null else {
+                            {
+                                if (key.label == "\u232B") {
+                                    backspaceRepeat = true
+                                } else if (key.label == "\u21B5") {
+                                    onEnterLongPress()
+                                } else {
+                                    onLongPress(key)
+                                }
+                            }
+                        },
+                        onRelease = {
+                            backspaceRepeat = false
+                        },
+                    )
                 }
             }
         }
@@ -335,11 +283,12 @@ fun KeyboardView(
 private fun RowScope.KeyboardKey(
     key: KbKey, weight: Float, bg: Color, fg: Color, hintFg: Color, fs: androidx.compose.ui.unit.TextUnit,
     active: Boolean = false,
+    popoverSerial: Long = 0L,
+    bumpPopoverSerial: () -> Long = { 0L },
     onTap: () -> Unit,
     onDoubleTap: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
     onRelease: () -> Unit = {},
-    onShowPopover: (IntOffset) -> Unit = {},
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -348,8 +297,29 @@ private fun RowScope.KeyboardKey(
     val kh = CipherPrefs.keyHeightDp.dp
     val isBackspace = key.label == "\u232B"
     var posInRoot by remember { mutableStateOf(IntOffset.Zero) }
+    val density = LocalDensity.current
+
+    var popoverShown by remember { mutableStateOf(false) }
+    var mySerial by remember { mutableStateOf(0L) }
+    val popoverEnabled = CipherPrefs.popupEnabled && key.label.length == 1
+
+    LaunchedEffect(popoverSerial) {
+        if (mySerial > 0L && mySerial != popoverSerial) {
+            popoverShown = false
+        }
+    }
+
+    LaunchedEffect(popoverShown) {
+        if (popoverShown) {
+            delay(300)
+            popoverShown = false
+        }
+    }
 
     val isSpaceNoIslands = !CipherPrefs.keyBgShading && key.label == " "
+    val dark = isSystemInDarkTheme()
+    val popoverBg = if (dark) Color(0xFF333333) else Color(0xFFCCCCCC)
+    val popoverFg = if (dark) Color.White else Color.Black
 
     Box(
         modifier = Modifier.weight(weight).height(kh)
@@ -404,7 +374,10 @@ private fun RowScope.KeyboardKey(
                     detectTapGestures(
                         onTap = {
                             if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                            onShowPopover(posInRoot)
+                            if (popoverEnabled) {
+                                mySerial = bumpPopoverSerial()
+                                popoverShown = true
+                            }
                             onTap()
                         },
                         onLongPress = onLongPress?.let { lp ->
@@ -443,6 +416,31 @@ private fun RowScope.KeyboardKey(
                 modifier = Modifier.align(Alignment.TopEnd).offset(x = (-3).dp, y = 2.dp),
                 textAlign = TextAlign.End,
             )
+        }
+    }
+
+    if (popoverShown) {
+        val offsetPx = with(density) { 8.dp.roundToPx() }
+        Popup(
+            popupPositionProvider = object : PopupPositionProvider {
+                override fun calculatePosition(
+                    anchorBounds: IntRect, windowSize: IntSize,
+                    layoutDirection: LayoutDirection, popupContentSize: IntSize,
+                ): IntOffset {
+                    val x = (posInRoot.x - popupContentSize.width / 2).coerceIn(0, windowSize.width - popupContentSize.width)
+                    val y = posInRoot.y - popupContentSize.height - offsetPx
+                    return IntOffset(x, y.coerceAtLeast(0))
+                }
+            },
+            properties = PopupProperties(focusable = false),
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(popoverBg, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+            ) {
+                Text(key.label, color = popoverFg, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
