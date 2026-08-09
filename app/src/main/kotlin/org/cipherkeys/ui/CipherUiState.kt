@@ -23,6 +23,7 @@ data class CipherState(
     val showSignerPicker: Boolean = false,
     val signExpirySeconds: Long = 0L,
     val signExpiryDays: Int = 0,
+    val signExpiryPast: Boolean = false,
     val infoMessage: String? = null,
     val infoIsWarning: Boolean = false,
 )
@@ -133,7 +134,7 @@ object CipherUiState {
     fun shouldSendAfterPicker(): Boolean = state.pendingSendAfterPicker
 
     fun showSignerPicker() {
-        state = state.copy(showSignerPicker = true)
+        state = state.copy(showSignerPicker = true, signExpiryPast = false)
     }
 
     fun hideSignerPicker() {
@@ -142,6 +143,10 @@ object CipherUiState {
 
     fun setSignExpiry(days: Int) {
         state = state.copy(signExpiryDays = days.coerceIn(0, 3650))
+    }
+
+    fun toggleSignExpiryPast() {
+        state = state.copy(signExpiryPast = !state.signExpiryPast)
     }
 
     fun setInfo(msg: String?, isWarning: Boolean = false) {

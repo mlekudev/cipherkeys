@@ -22,6 +22,7 @@ object CipherPrefs {
     private const val SYM_LOCK_METHOD = "sym_lock_method"
     private const val SYM_AUTO_RETURN = "sym_auto_return"
     private const val AUTO_CAPITALIZE = "auto_capitalize"
+    private const val DEV_MODE = "dev_mode"
     private const val ENCRYPT_TO_SELF = "encrypt_to_self"
     private const val ENCRYPT_TO_SELF_KEY = "encrypt_to_self_key"
 
@@ -63,6 +64,9 @@ object CipherPrefs {
     var autoCapitalize by mutableStateOf(true)
         private set
 
+    var devMode by mutableStateOf(false)
+        private set
+
     var encryptToSelf by mutableStateOf(false)
         private set
 
@@ -82,6 +86,7 @@ object CipherPrefs {
         symLockMethod = prefs!!.getString(SYM_LOCK_METHOD, "double-tap") ?: "double-tap"
         symAutoReturn = prefs!!.getBoolean(SYM_AUTO_RETURN, false)
         autoCapitalize = prefs!!.getBoolean(AUTO_CAPITALIZE, true)
+        devMode = prefs!!.getBoolean(DEV_MODE, false)
         encryptToSelf = prefs!!.getBoolean(ENCRYPT_TO_SELF, false)
         val selfKeyId = prefs!!.getLong(ENCRYPT_TO_SELF_KEY, -1L)
         encryptToSelfKeyId = if (selfKeyId >= 0) selfKeyId else null
@@ -142,6 +147,11 @@ object CipherPrefs {
     fun updateAutoCapitalize(v: Boolean) {
         autoCapitalize = v
         prefs?.edit()?.putBoolean(AUTO_CAPITALIZE, v)?.apply()
+    }
+
+    fun updateDevMode(v: Boolean) {
+        devMode = v
+        prefs?.edit()?.putBoolean(DEV_MODE, v)?.apply()
     }
 
     fun updateEncryptToSelf(v: Boolean) {

@@ -128,11 +128,13 @@ class PgpEngine {
         plaintext: String,
         secretKey: PGPSecretKeyRing,
         passphrase: String,
-        expirySeconds: Long = 0L
+        expirySeconds: Long = 0L,
+        alreadyExpired: Boolean = false
     ): String {
-        val text = if (expirySeconds > 0) {
-            val exp = System.currentTimeMillis() / 1000 + expirySeconds
-            Log.d("PgpEngine", "sign with expiry=$expirySeconds sec (until epoch $exp) for text len=${plaintext.length}")
+        val text = if (expirySeconds > 0 || alreadyExpired) {
+            val exp = if (alreadyExpired) System.currentTimeMillis() / 1000 - 1
+                      else System.currentTimeMillis() / 1000 + expirySeconds
+            Log.d("PgpEngine", "sign with expiry=$expirySeconds sec (epoch $exp, past=$alreadyExpired) for text len=${plaintext.length}")
             "[CipherKeys:expires=$exp]\n$plaintext"
         } else {
             Log.d("PgpEngine", "sign without expiry for text len=${plaintext.length}")

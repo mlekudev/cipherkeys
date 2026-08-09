@@ -296,6 +296,23 @@ fun CipherPanel(
                         }
                         Spacer(Modifier.width(6.dp))
                         Text("days", fontSize = 12.sp, color = dimFg)
+                        if (CipherPrefs.devMode) {
+                            Spacer(Modifier.width(10.dp))
+                            val pastSelected = CipherUiState.state.signExpiryPast
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(
+                                        if (pastSelected) Color(0xFFFF5252).copy(alpha = 0.2f)
+                                        else panelFg.copy(alpha = 0.08f)
+                                    )
+                                    .clickable { CipherUiState.toggleSignExpiryPast() }
+                                    .padding(horizontal = 6.dp, vertical = 3.dp)
+                            ) {
+                                Text("past", fontSize = 11.sp,
+                                    color = if (pastSelected) Color(0xFFFF5252) else dimFg)
+                            }
+                        }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),

@@ -421,8 +421,8 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                 val signKey = s.selectedSigningKeyId?.let { keyManager.getSecretKeyRing(it) }
                 if (signKey == null) { CipherUiState.setError("No signing key selected"); return@execute }
                 val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
-                val expirySecs = if (s.signExpiryDays > 0) s.signExpiryDays * 86400L else 0L
-                val r = pgpEngine.sign(msg, signKey, pw, expirySecs)
+                val expirySecs = if (s.signExpiryPast) 1L else if (s.signExpiryDays > 0) s.signExpiryDays * 86400L else 0L
+                val r = pgpEngine.sign(msg, signKey, pw, expirySecs, s.signExpiryPast)
                 cachedPassphrase = pw
                 Handler(Looper.getMainLooper()).post {
                     val ic = currentInputConnection
