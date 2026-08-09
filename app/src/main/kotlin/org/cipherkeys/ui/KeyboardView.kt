@@ -368,15 +368,13 @@ private fun RowScope.KeyboardKey(
         if (popoverShown) {
             Text(
                 text = key.label,
-                color = Color.White,
+                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
                 fontSize = 44.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .offset(y = -(kh + 8.dp))
-                    .zIndex(100f)
-                    .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                    .zIndex(100f),
             )
         }
     }
