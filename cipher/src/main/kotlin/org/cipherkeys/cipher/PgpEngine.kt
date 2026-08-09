@@ -125,8 +125,13 @@ class PgpEngine {
     fun sign(
         plaintext: String,
         secretKey: PGPSecretKeyRing,
-        passphrase: String
+        passphrase: String,
+        expirySeconds: Long = 0L
     ): String {
+        val text = if (expirySeconds > 0) {
+            "[CipherKeys:expires=${System.currentTimeMillis() / 1000 + expirySeconds}]\n$plaintext"
+        } else plaintext
+
         val protector = SecretKeyRingProtector.unlockAnyKeyWith(
             Passphrase.fromPassword(passphrase)
         )
@@ -139,6 +144,7 @@ class PgpEngine {
 
         val producerOptions = ProducerOptions.sign(signingOptions).apply {
             setAsciiArmor(true)
+            setCleartextSigned()
         }
 
         val out = ByteArrayOutputStream()
@@ -146,9 +152,42 @@ class PgpEngine {
             .onOutputStream(out)
             .withOptions(producerOptions)
 
-        stream.write(plaintext.toByteArray(Charsets.UTF_8))
+        stream.write(text.toByteArray(Charsets.UTF_8))
         stream.close()
         return String(out.toByteArray())
+    }
+
+    fun extractPlaintext(signedMessage: String): String? {
+        val marker = "-----BEGIN PGP SIGNED MESSAGE-----"
+        val sigMarker = "-----BEGIN PGP SIGNATURE-----"
+        val idx = signedMessage.indexOf(marker)
+        if (idx < 0) return null
+        val afterMarker = signedMessage.substring(idx + marker.length)
+        val sigIdx = afterMarker.indexOf(sigMarker)
+        if (sigIdx < 0) return null
+        val body = afterMarker.substring(0, sigIdx)
+        val lines = body.lines()
+            .dropWhile { it.startsWith("Hash:") || it.isBlank() }
+            .dropLastWhile { it.isBlank() }
+        return lines.joinToString("\n")
+    }
+
+    fun checkExpired(plaintext: String): Boolean {
+        val prefix = "[CipherKeys:expires="
+        val idx = plaintext.indexOf(prefix)
+        if (idx < 0) return false
+        val endIdx = plaintext.indexOf(']', idx)
+        if (endIdx < 0) return false
+        val ts = plaintext.substring(idx + prefix.length, endIdx).toLongOrNull() ?: return false
+        return System.currentTimeMillis() / 1000 > ts
+    }
+
+    fun stripExpiration(plaintext: String): String {
+        val firstLine = plaintext.lines().firstOrNull() ?: return plaintext
+        if (firstLine.startsWith("[CipherKeys:expires=")) {
+            return plaintext.substringAfter("\n").trimStart()
+        }
+        return plaintext
     }
 
     fun verify(

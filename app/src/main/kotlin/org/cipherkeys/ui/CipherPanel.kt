@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,12 +18,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
@@ -34,7 +35,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,25 +45,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.cipherkeys.cipher.RecipientInfo
+import org.cipherkeys.cipher.KeyInfo
 
 @Composable
 fun CipherPanel(
     onEncrypt: () -> Unit,
     onDecrypt: () -> Unit,
     onSend: () -> Unit,
+    onSign: () -> Unit,
     onCopy: () -> Unit,
     onPaste: () -> Unit,
+    onClear: () -> Unit,
     onSettingsClick: () -> Unit,
     onHelpClick: () -> Unit,
     onRecipientsClick: () -> Unit,
     signingKeyName: String?,
     allRecipients: List<RecipientInfo> = emptyList(),
     onToggleRecipient: (Long) -> Unit = {},
+    allKeys: List<KeyInfo> = emptyList(),
+    onSelectSigner: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val state = CipherUiState.state
@@ -101,8 +105,8 @@ fun CipherPanel(
                     IconButton(onClick = onDecrypt, enabled = enabled && state.composeText.isNotEmpty(), modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.LockOpen, "Decrypt", tint = tint, modifier = Modifier.size(22.dp))
                     }
-                    IconButton(onClick = onSend, enabled = enabled && state.composeText.isNotEmpty() && !needsPassphrase, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.Send, "Send",
+                    IconButton(onClick = onSign, enabled = enabled && state.composeText.isNotEmpty() && !needsPassphrase, modifier = Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Create, "Sign",
                             tint = if (needsPassphrase) dimFg.copy(alpha = 0.15f) else tint,
                             modifier = Modifier.size(22.dp))
                     }
@@ -120,7 +124,7 @@ fun CipherPanel(
                         Icon(Icons.Default.Settings, "Settings", tint = dimFg, modifier = Modifier.size(20.dp))
                     }
                     IconButton(onClick = onHelpClick, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Help, "Help", tint = dimFg, modifier = Modifier.size(20.dp))
+                        Icon(Icons.AutoMirrored.Filled.Help, "Help", tint = dimFg, modifier = Modifier.size(20.dp))
                     }
                 }
             } else {
@@ -129,7 +133,7 @@ fun CipherPanel(
                     Icon(Icons.Default.Settings, "Settings", tint = dimFg, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = onHelpClick, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Help, "Help", tint = dimFg, modifier = Modifier.size(20.dp))
+                    Icon(Icons.AutoMirrored.Filled.Help, "Help", tint = dimFg, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -163,13 +167,41 @@ fun CipherPanel(
             }
         }
 
+        if (state.infoMessage != null && state.isActive) {
+            LaunchedEffect(state.infoMessage) {
+                delay(4000)
+                CipherUiState.clearInfo()
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().height(32.dp).background(panelBg),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (state.infoIsWarning) "\u26A0" else "\u2714",
+                    fontSize = 14.sp,
+                    color = if (state.infoIsWarning) Color(0xFFFF5252) else Color(0xFF4CAF50),
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
+                Text(
+                    state.infoMessage ?: "",
+                    fontSize = 12.sp,
+                    color = if (state.infoIsWarning) Color(0xFFFF5252) else Color(0xFF4CAF50),
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                )
+                IconButton(onClick = { CipherUiState.clearInfo() }, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Default.Close, "Dismiss", tint = dimFg, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+
         if (state.errorMessage != null && state.isActive) {
             Row(
                 modifier = Modifier.fillMaxWidth().height(30.dp).background(panelBg),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    state.errorMessage!!,
+                    state.errorMessage ?: "",
                     fontSize = 12.sp,
                     color = dimFg,
                     modifier = Modifier.padding(horizontal = 8.dp).weight(1f),
@@ -181,7 +213,112 @@ fun CipherPanel(
             }
         }
 
-        if (state.showRecipientPicker && state.isActive) {
+        if (state.showSignerPicker && state.isActive) {
+            Box(modifier = Modifier.fillMaxWidth().background(panelBg)) {
+                Column(modifier = Modifier.padding(bottom = 3.dp)) {
+                    Text(
+                        "Select Signing Key",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = panelFg,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    )
+                    if (allKeys.isEmpty()) {
+                        Text(
+                            "No keys stored. Generate or import a PGP key in Settings > Keys.",
+                            fontSize = 12.sp,
+                            color = dimFg,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                    allKeys.forEach { key ->
+                        val isSelected = state.selectedSigningKeyId == key.keyId
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    key.userId.split("<").firstOrNull()?.trim() ?: key.userId,
+                                    fontSize = 13.sp,
+                                    color = panelFg,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    String.format("0x%016X", key.keyId),
+                                    fontSize = 10.sp,
+                                    color = dimFg,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            Switch(
+                                checked = isSelected,
+                                onCheckedChange = { onSelectSigner(key.keyId) },
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Expiration:", fontSize = 12.sp, color = dimFg)
+                        Spacer(Modifier.width(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(panelFg.copy(alpha = 0.08f))
+                                .clickable { CipherUiState.setSignExpiry((state.signExpiryDays - 1).coerceAtLeast(0)) }
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                        ) {
+                            Text("-", fontSize = 11.sp, color = dimFg)
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "${state.signExpiryDays}",
+                            fontSize = 13.sp,
+                            color = panelFg,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(panelFg.copy(alpha = 0.08f))
+                                .clickable { CipherUiState.setSignExpiry(state.signExpiryDays + 1) }
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                        ) {
+                            Text("+", fontSize = 11.sp, color = dimFg)
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text("days", fontSize = 12.sp, color = dimFg)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        IconButton(onClick = { CipherUiState.hideSignerPicker() }, modifier = Modifier.height(28.dp)) {
+                            Icon(Icons.Default.Close, "Cancel", tint = dimFg, modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        IconButton(
+                            onClick = {
+                                CipherUiState.hideSignerPicker()
+                                onSign()
+                            },
+                            enabled = state.selectedSigningKeyId != null,
+                            modifier = Modifier.height(28.dp),
+                        ) {
+                            Icon(Icons.Default.Check, "Done", tint = if (state.selectedSigningKeyId != null) panelFg else dimFg.copy(alpha = 0.3f), modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+            }
+        } else if (state.showRecipientPicker && state.isActive) {
             Box(modifier = Modifier.fillMaxWidth().background(panelBg)) {
                 Column(modifier = Modifier.padding(bottom = 3.dp)) {
                     Text(
@@ -235,16 +372,6 @@ fun CipherPanel(
                             Text("${state.selectedRecipientIds.size} selected", fontSize = 11.sp, color = dimFg)
                         }
                         Spacer(Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(panelFg.copy(alpha = 0.1f))
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Cancel", fontSize = 12.sp, color = dimFg)
-                            }
-                        }
                         IconButton(onClick = { CipherUiState.hideRecipientPicker() }, modifier = Modifier.height(28.dp)) {
                             Icon(Icons.Default.Close, "Cancel", tint = dimFg, modifier = Modifier.size(16.dp))
                         }
@@ -281,6 +408,14 @@ fun CipherPanel(
                             revealLastChar = state.revealLastChar,
                             active = state.isActive,
                         )
+                    }
+                    if (state.composeText.isNotEmpty() && state.isActive) {
+                        IconButton(
+                            onClick = onClear,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(28.dp)
+                        ) {
+                            Icon(Icons.Default.Close, "Clear", tint = dimFg, modifier = Modifier.size(16.dp))
+                        }
                     }
                     if (state.isLoading) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center).padding(16.dp), strokeWidth = 2.dp)

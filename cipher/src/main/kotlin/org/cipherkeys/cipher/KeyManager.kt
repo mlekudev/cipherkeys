@@ -69,6 +69,13 @@ class KeyManager(private val keyStore: KeyStore) {
         return keyStore.getSecretKeyRing(keyId)
     }
 
+    fun getPublicKeyRing(keyId: Long): PGPPublicKeyRing? {
+        val keyRing = keyStore.getSecretKeyRing(keyId) ?: return null
+        val pubKeys = mutableListOf<org.bouncycastle.openpgp.PGPPublicKey>()
+        keyRing.publicKeys.forEach { pubKeys.add(it as org.bouncycastle.openpgp.PGPPublicKey) }
+        return PGPPublicKeyRing(pubKeys)
+    }
+
     fun listKeys(): List<KeyInfo> {
         return keyStore.listStoredKeys().map { stored ->
             KeyInfo(

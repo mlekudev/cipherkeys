@@ -20,9 +20,14 @@ data class CipherState(
     val revealLastChar: Boolean = false,
     val showRecipientPicker: Boolean = false,
     val pendingSendAfterPicker: Boolean = false,
+    val showSignerPicker: Boolean = false,
+    val signExpirySeconds: Long = 0L,
+    val signExpiryDays: Int = 0,
+    val infoMessage: String? = null,
+    val infoIsWarning: Boolean = false,
 )
 
-enum class PendingAction { ENCRYPT, DECRYPT }
+enum class PendingAction { ENCRYPT, DECRYPT, SIGN }
 
 object CipherUiState {
     var state by mutableStateOf(CipherState())
@@ -126,4 +131,24 @@ object CipherUiState {
     }
 
     fun shouldSendAfterPicker(): Boolean = state.pendingSendAfterPicker
+
+    fun showSignerPicker() {
+        state = state.copy(showSignerPicker = true)
+    }
+
+    fun hideSignerPicker() {
+        state = state.copy(showSignerPicker = false)
+    }
+
+    fun setSignExpiry(days: Int) {
+        state = state.copy(signExpiryDays = days.coerceIn(0, 3650))
+    }
+
+    fun setInfo(msg: String?, isWarning: Boolean = false) {
+        state = state.copy(infoMessage = msg, infoIsWarning = isWarning)
+    }
+
+    fun clearInfo() {
+        state = state.copy(infoMessage = null, infoIsWarning = false)
+    }
 }

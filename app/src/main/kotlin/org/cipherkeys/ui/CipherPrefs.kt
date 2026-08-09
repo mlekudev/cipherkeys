@@ -22,6 +22,8 @@ object CipherPrefs {
     private const val SYM_LOCK_METHOD = "sym_lock_method"
     private const val SYM_AUTO_RETURN = "sym_auto_return"
     private const val AUTO_CAPITALIZE = "auto_capitalize"
+    private const val ENCRYPT_TO_SELF = "encrypt_to_self"
+    private const val ENCRYPT_TO_SELF_KEY = "encrypt_to_self_key"
 
     private const val DEFAULT_KEY_HEIGHT = 42
     private const val DEFAULT_PANEL_LINES = 4
@@ -61,6 +63,12 @@ object CipherPrefs {
     var autoCapitalize by mutableStateOf(true)
         private set
 
+    var encryptToSelf by mutableStateOf(false)
+        private set
+
+    var encryptToSelfKeyId by mutableStateOf<Long?>(null)
+        private set
+
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         keyHeightDp = prefs!!.getInt(KEY_HEIGHT, DEFAULT_KEY_HEIGHT)
@@ -74,6 +82,9 @@ object CipherPrefs {
         symLockMethod = prefs!!.getString(SYM_LOCK_METHOD, "double-tap") ?: "double-tap"
         symAutoReturn = prefs!!.getBoolean(SYM_AUTO_RETURN, false)
         autoCapitalize = prefs!!.getBoolean(AUTO_CAPITALIZE, true)
+        encryptToSelf = prefs!!.getBoolean(ENCRYPT_TO_SELF, false)
+        val selfKeyId = prefs!!.getLong(ENCRYPT_TO_SELF_KEY, -1L)
+        encryptToSelfKeyId = if (selfKeyId >= 0) selfKeyId else null
     }
 
     fun updateKeyHeight(value: Int) {
@@ -131,5 +142,15 @@ object CipherPrefs {
     fun updateAutoCapitalize(v: Boolean) {
         autoCapitalize = v
         prefs?.edit()?.putBoolean(AUTO_CAPITALIZE, v)?.apply()
+    }
+
+    fun updateEncryptToSelf(v: Boolean) {
+        encryptToSelf = v
+        prefs?.edit()?.putBoolean(ENCRYPT_TO_SELF, v)?.apply()
+    }
+
+    fun updateEncryptToSelfKeyId(id: Long?) {
+        encryptToSelfKeyId = id
+        prefs?.edit()?.putLong(ENCRYPT_TO_SELF_KEY, id ?: -1L)?.apply()
     }
 }

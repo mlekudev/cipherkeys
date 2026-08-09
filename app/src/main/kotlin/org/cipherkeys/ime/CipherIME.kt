@@ -102,6 +102,20 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                 CipherUiState.updateComposeText("")
                             }
                         },
+                        onSign = {
+                            CipherUiState.cancelBackspaceRepeat()
+                            val s = CipherUiState.state
+                            if (s.composeText.isBlank()) { CipherUiState.setError("Enter text to sign"); return@CipherPanel }
+                            val keys = keyManager.listKeys()
+                            if (keys.isEmpty()) { CipherUiState.setError("No keys stored"); return@CipherPanel }
+                            if (s.selectedSigningKeyId == null) {
+                                CipherUiState.showSignerPicker()
+                            } else if (cachedPassphrase == null) {
+                                CipherUiState.requestPassphrase(PendingAction.SIGN)
+                            } else {
+                                doSign(cachedPassphrase!!)
+                            }
+                        },
                         onCopy = {
                             CipherUiState.cancelBackspaceRepeat()
                             val text = CipherUiState.state.composeText.ifEmpty { CipherUiState.state.decryptedText }
@@ -116,8 +130,23 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             val cm = getSystemService(android.content.ClipboardManager::class.java)
                             val clip = cm?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
                             if (clip.isNotEmpty()) {
-                                CipherUiState.insertTextAtCursor(clip)
+                                val extracted = pgpEngine.extractPlaintext(clip)
+                                if (extracted != null) {
+                                    val stripped = pgpEngine.stripExpiration(extracted)
+                                    CipherUiState.insertTextAtCursor(stripped)
+                                    if (pgpEngine.checkExpired(extracted)) {
+                                        CipherUiState.setInfo("Message expired", isWarning = true)
+                                    } else {
+                                        CipherUiState.setInfo("Message valid", isWarning = false)
+                                    }
+                                } else {
+                                    CipherUiState.insertTextAtCursor(clip)
+                                }
                             }
+                        },
+                        onClear = {
+                            CipherUiState.cancelBackspaceRepeat()
+                            CipherUiState.clearText()
                         },
                         onSettingsClick = {
                             CipherUiState.cancelBackspaceRepeat()
@@ -134,6 +163,11 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                         signingKeyName = signName,
                         allRecipients = recipientManager.listRecipients(),
                         onToggleRecipient = { id -> CipherUiState.toggleRecipient(id) },
+                        allKeys = keyManager.listKeys(),
+                        onSelectSigner = { id ->
+                            CipherUiState.setSigningKey(id)
+                            CipherUiState.setSignExpiry(0)
+                        },
                     )
 
                     KeyboardView(
@@ -179,6 +213,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                     when (CipherUiState.state.pendingAction) {
                                         PendingAction.ENCRYPT -> doEncrypt(pw)
                                         PendingAction.DECRYPT -> doDecrypt(pw)
+                                        PendingAction.SIGN -> doSign(pw)
                                         null -> {}
                                     }
                                 } else {
@@ -239,7 +274,11 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         val s = CipherUiState.state
         if (s.pendingAction != null) {
             if (s.composeText.isBlank()) { CipherUiState.setError("Enter passphrase"); return }
-            doEncrypt(s.composeText)
+            when (s.pendingAction) {
+                PendingAction.ENCRYPT -> doEncrypt(s.composeText)
+                PendingAction.DECRYPT -> doDecrypt(s.composeText)
+                PendingAction.SIGN -> doSign(s.composeText)
+            }
             return
         }
         if (s.composeText.isBlank()) { CipherUiState.setError("Enter text to encrypt"); return }
@@ -263,7 +302,11 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         val s = CipherUiState.state
         if (s.pendingAction != null) {
             if (s.composeText.isBlank()) { CipherUiState.setError("Enter passphrase"); return }
-            doDecrypt(s.composeText)
+            when (s.pendingAction) {
+                PendingAction.ENCRYPT -> doEncrypt(s.composeText)
+                PendingAction.DECRYPT -> doDecrypt(s.composeText)
+                PendingAction.SIGN -> doSign(s.composeText)
+            }
             return
         }
         if (s.composeText.isBlank()) { CipherUiState.setError("Enter encrypted text"); return }
@@ -279,7 +322,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         val s = CipherUiState.state; CipherUiState.setLoading(true)
         cryptoExecutor.execute {
             try {
-                val recips = s.selectedRecipientIds.mapNotNull { recipientManager.getRecipientPublicKey(it) }
+                val recips = getEncryptRecipients(s)
                 if (recips.isEmpty()) { CipherUiState.setError("No valid recipient keys"); cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase(); return@execute }
                 val signKey = s.selectedSigningKeyId?.let { keyManager.getSecretKeyRing(it) }
                 val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
@@ -298,7 +341,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         val s = CipherUiState.state; CipherUiState.setLoading(true)
         cryptoExecutor.execute {
             try {
-                val recips = s.selectedRecipientIds.mapNotNull { recipientManager.getRecipientPublicKey(it) }
+                val recips = getEncryptRecipients(s)
                 if (recips.isEmpty()) { CipherUiState.setError("No valid recipient keys"); return@execute }
                 val signKey = s.selectedSigningKeyId?.let { keyManager.getSecretKeyRing(it) }
                 val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
@@ -339,6 +382,52 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             catch (e: Exception) { cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase(); CipherUiState.setError("Error: ${e.message}") }
             finally { CipherUiState.setLoading(false) }
         }
+    }
+
+    private fun doSign(pw: String) {
+        val s = CipherUiState.state; CipherUiState.setLoading(true)
+        cryptoExecutor.execute {
+            try {
+                val signKey = s.selectedSigningKeyId?.let { keyManager.getSecretKeyRing(it) }
+                if (signKey == null) { CipherUiState.setError("No signing key selected"); return@execute }
+                val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
+                val expirySecs = if (s.signExpiryDays > 0) s.signExpiryDays * 86400L else 0L
+                val r = pgpEngine.sign(msg, signKey, pw, expirySecs)
+                cachedPassphrase = pw
+                Handler(Looper.getMainLooper()).post {
+                    val ic = currentInputConnection
+                    if (ic != null) ic.commitText(r, 1)
+                    CipherUiState.clearText()
+                    CipherUiState.clearPendingAndSaved()
+                    CipherUiState.clearError()
+                    CipherUiState.setLoading(false)
+                }
+            } catch (e: CipherException) {
+                cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase()
+                CipherUiState.setError(e.message ?: "Sign failed"); CipherUiState.setLoading(false)
+            } catch (e: Exception) {
+                cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase()
+                CipherUiState.setError("Error: ${e.message}"); CipherUiState.setLoading(false)
+            }
+        }
+    }
+
+    private fun getEncryptRecipients(s: org.cipherkeys.ui.CipherState): List<org.bouncycastle.openpgp.PGPPublicKeyRing> {
+        val recips = s.selectedRecipientIds.mapNotNull { recipientManager.getRecipientPublicKey(it) }.toMutableList()
+        if (CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId != null) {
+            val selfKeyId = CipherPrefs.encryptToSelfKeyId!!
+            val selfKey = keyManager.listKeys().find { it.keyId == selfKeyId }
+            if (selfKey != null) {
+                val alreadyIn = s.selectedRecipientIds.any { rid ->
+                    recipientManager.getRecipientPublicKey(rid)?.publicKey?.keyID == selfKeyId
+                }
+                if (!alreadyIn) {
+                    val selfPub = keyManager.getPublicKeyRing(selfKeyId)
+                    if (selfPub != null) recips.add(selfPub)
+                }
+            }
+        }
+        return recips
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) { super.onStartInputView(info, restarting) }
