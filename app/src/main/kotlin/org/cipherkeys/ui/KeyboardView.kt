@@ -296,11 +296,19 @@ private fun RowScope.KeyboardKey(
     val kh = CipherPrefs.keyHeightDp.dp
     val isBackspace = key.label == "\u232B"
     var posInRoot by remember { mutableStateOf(IntOffset.Zero) }
+    var hasPosition by remember { mutableStateOf(false) }
     val density = LocalDensity.current
 
     var popoverShown by remember { mutableStateOf(false) }
+    var popoverLabel by remember { mutableStateOf("") }
     var mySerial by remember { mutableStateOf(0L) }
     val popoverEnabled = CipherPrefs.popupEnabled && key.label.length == 1
+
+    fun showPopover(serial: Long, label: String) {
+        mySerial = serial
+        popoverLabel = label
+        popoverShown = true
+    }
 
     LaunchedEffect(popoverSerial) {
         if (mySerial > 0L && mySerial != popoverSerial) {
@@ -322,7 +330,7 @@ private fun RowScope.KeyboardKey(
     val keyContent = @Composable {
         Box(
             modifier = Modifier.fillMaxWidth().height(kh)
-                .onGloballyPositioned { posInRoot = it.positionInRoot().round() }
+                .onGloballyPositioned { posInRoot = it.positionInRoot().round(); hasPosition = true }
                 .background(if (highlighted) fg else bg, RoundedCornerShape(5.dp))
                 .pointerInput(key) {
                     if (isBackspace) {
@@ -373,16 +381,15 @@ private fun RowScope.KeyboardKey(
                         detectTapGestures(
                             onTap = {
                                 if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                                if (popoverEnabled) {
-                                    mySerial = bumpPopoverSerial()
-                                    popoverShown = true
-                                }
+                                if (popoverEnabled) showPopover(bumpPopoverSerial(), key.label)
                                 onTap()
                             },
                             onLongPress = onLongPress?.let { lp ->
                                 {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     pressed = true
+                                    val longLabel = key.longPress ?: key.label
+                                    if (CipherPrefs.popupEnabled) showPopover(bumpPopoverSerial(), longLabel)
                                     lp()
                                     scope.launch { delay(100); pressed = false }
                                 }
@@ -423,7 +430,7 @@ private fun RowScope.KeyboardKey(
 
     Box(modifier = Modifier.weight(weight)) {
         keyContent()
-        if (popoverShown) {
+        if (popoverShown && hasPosition) {
             val offsetPx = with(density) { 8.dp.roundToPx() }
             Popup(
                 popupPositionProvider = object : PopupPositionProvider {
@@ -443,7 +450,7 @@ private fun RowScope.KeyboardKey(
                         .background(popoverBg, RoundedCornerShape(12.dp))
                         .padding(horizontal = 24.dp, vertical = 12.dp),
                 ) {
-                    Text(key.label, color = popoverFg, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+                    Text(popoverLabel, color = popoverFg, fontSize = 44.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
