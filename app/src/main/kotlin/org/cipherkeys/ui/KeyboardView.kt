@@ -319,127 +319,132 @@ private fun RowScope.KeyboardKey(
     val popoverBg = if (dark) Color(0xFF333333) else Color(0xFFCCCCCC)
     val popoverFg = if (dark) Color.White else Color.Black
 
-    Box(
-        modifier = Modifier.weight(weight).height(kh)
-            .onGloballyPositioned { posInRoot = it.positionInRoot().round() }
-            .background(if (highlighted) fg else bg, RoundedCornerShape(5.dp))
-            .pointerInput(key) {
-                if (isBackspace) {
-                    coroutineScope {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val down = awaitFirstDown(requireUnconsumed = false)
-                                val longPressTimeout = viewConfiguration.longPressTimeoutMillis
-                                var longPressTriggered = false
-                                val longPressJob = launch {
-                                    delay(longPressTimeout.toLong())
-                                    longPressTriggered = true
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    pressed = true
-                                    onLongPress?.invoke()
-                                }
-                                var released = false
-                                while (!released) {
-                                    val event = awaitPointerEvent()
-                                    if (event.changes.all { it.isConsumed || !it.pressed }) released = true
-                                }
-                                longPressJob.cancel()
-                                pressed = false
-                                onRelease()
-                                if (!longPressTriggered) {
-                                    if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                                    onTap()
+    val keyContent = @Composable {
+        Box(
+            modifier = Modifier.height(kh)
+                .onGloballyPositioned { posInRoot = it.positionInRoot().round() }
+                .background(if (highlighted) fg else bg, RoundedCornerShape(5.dp))
+                .pointerInput(key) {
+                    if (isBackspace) {
+                        coroutineScope {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                                    var longPressTriggered = false
+                                    val longPressJob = launch {
+                                        delay(longPressTimeout.toLong())
+                                        longPressTriggered = true
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        pressed = true
+                                        onLongPress?.invoke()
+                                    }
+                                    var released = false
+                                    while (!released) {
+                                        val event = awaitPointerEvent()
+                                        if (event.changes.all { it.isConsumed || !it.pressed }) released = true
+                                    }
+                                    longPressJob.cancel()
+                                    pressed = false
+                                    onRelease()
+                                    if (!longPressTriggered) {
+                                        if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                                        onTap()
+                                    }
                                 }
                             }
                         }
-                    }
-                } else if (onDoubleTap != null) {
-                    detectTapGestures(
-                        onTap = {
-                            if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                            onTap()
-                        },
-                        onDoubleTap = {
-                            if (CipherPrefs.hapticEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            }
-                            pressed = true
-                            onDoubleTap()
-                            scope.launch { delay(100); pressed = false }
-                        },
-                    )
-                } else {
-                    detectTapGestures(
-                        onTap = {
-                            if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                            if (popoverEnabled) {
-                                mySerial = bumpPopoverSerial()
-                                popoverShown = true
-                            }
-                            onTap()
-                        },
-                        onLongPress = onLongPress?.let { lp ->
-                            {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    } else if (onDoubleTap != null) {
+                        detectTapGestures(
+                            onTap = {
+                                if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                                onTap()
+                            },
+                            onDoubleTap = {
+                                if (CipherPrefs.hapticEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
                                 pressed = true
-                                lp()
+                                onDoubleTap()
                                 scope.launch { delay(100); pressed = false }
-                            }
-                        },
-                    )
-                }
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        if (key.label == " ") {
-            Text(
-                text = "\u2423",
-                color = fg.copy(alpha = 0.5f),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Normal,
-                textAlign = TextAlign.Center,
-            )
-        } else {
-            Text(
-                text = if (pressed && key.longPress != null) key.longPress!! else key.label,
-                color = if (highlighted) bg else fg,
-                fontSize = fs,
-                fontWeight = if (key.label.length == 1) FontWeight.Medium else FontWeight.Normal,
-                textAlign = TextAlign.Center,
-            )
-        }
-        if (key.hint != null) {
-            Text(
-                text = key.hint,
-                color = if (highlighted) bg.copy(alpha = 0.45f) else hintFg,
-                fontSize = 18.sp,
-                modifier = Modifier.align(Alignment.TopEnd).offset(x = (-3).dp, y = 2.dp),
-                textAlign = TextAlign.End,
-            )
+                            },
+                        )
+                    } else {
+                        detectTapGestures(
+                            onTap = {
+                                if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                                if (popoverEnabled) {
+                                    mySerial = bumpPopoverSerial()
+                                    popoverShown = true
+                                }
+                                onTap()
+                            },
+                            onLongPress = onLongPress?.let { lp ->
+                                {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    pressed = true
+                                    lp()
+                                    scope.launch { delay(100); pressed = false }
+                                }
+                            },
+                        )
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (key.label == " ") {
+                Text(
+                    text = "\u2423",
+                    color = fg.copy(alpha = 0.5f),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                Text(
+                    text = if (pressed && key.longPress != null) key.longPress!! else key.label,
+                    color = if (highlighted) bg else fg,
+                    fontSize = fs,
+                    fontWeight = if (key.label.length == 1) FontWeight.Medium else FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            if (key.hint != null) {
+                Text(
+                    text = key.hint,
+                    color = if (highlighted) bg.copy(alpha = 0.45f) else hintFg,
+                    fontSize = 18.sp,
+                    modifier = Modifier.align(Alignment.TopEnd).offset(x = (-3).dp, y = 2.dp),
+                    textAlign = TextAlign.End,
+                )
+            }
         }
     }
 
-    if (popoverShown) {
-        val offsetPx = with(density) { 8.dp.roundToPx() }
-        Popup(
-            popupPositionProvider = object : PopupPositionProvider {
-                override fun calculatePosition(
-                    anchorBounds: IntRect, windowSize: IntSize,
-                    layoutDirection: LayoutDirection, popupContentSize: IntSize,
-                ): IntOffset {
-                    val x = (posInRoot.x - popupContentSize.width / 2).coerceIn(0, windowSize.width - popupContentSize.width)
-                    val y = posInRoot.y - popupContentSize.height - offsetPx
-                    return IntOffset(x, y.coerceAtLeast(0))
-                }
-            },
-            properties = PopupProperties(focusable = false),
-        ) {
-            Box(
-                modifier = Modifier
-                    .background(popoverBg, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+    Box(modifier = Modifier.weight(weight)) {
+        keyContent()
+        if (popoverShown) {
+            val offsetPx = with(density) { 8.dp.roundToPx() }
+            Popup(
+                popupPositionProvider = object : PopupPositionProvider {
+                    override fun calculatePosition(
+                        anchorBounds: IntRect, windowSize: IntSize,
+                        layoutDirection: LayoutDirection, popupContentSize: IntSize,
+                    ): IntOffset {
+                        val x = (posInRoot.x - popupContentSize.width / 2).coerceIn(0, windowSize.width - popupContentSize.width)
+                        val y = posInRoot.y - popupContentSize.height - offsetPx
+                        return IntOffset(x, y.coerceAtLeast(0))
+                    }
+                },
+                properties = PopupProperties(focusable = false),
             ) {
-                Text(key.label, color = popoverFg, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+                Box(
+                    modifier = Modifier
+                        .background(popoverBg, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                ) {
+                    Text(key.label, color = popoverFg, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
