@@ -70,7 +70,7 @@ fun KeyboardView(
     val hintFg = keyFg.copy(alpha = 0.45f)
     val keyBg = if (CipherPrefs.keyBgShading) rawKeyBg else kbBg
     val specialBg = if (CipherPrefs.keyBgShading) rawSpecialBg else kbBg
-    val popoverBg = if (dark) Color.Black.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.5f)
+    val popoverBg = if (dark) Color(0xFF333333) else Color(0xFFCCCCCC)
     val popoverFg = if (dark) Color.White else Color.Black
 
     val haptic = LocalHapticFeedback.current
