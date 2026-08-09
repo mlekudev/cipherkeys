@@ -307,7 +307,7 @@ private fun RowScope.KeyboardKey(
     }
 
     val popoverEnabled = CipherPrefs.popupEnabled && key.label.length == 1
-    val spaceUnderline = !CipherPrefs.keyBgShading && key.label == " "
+    val isSpaceNoIslands = !CipherPrefs.keyBgShading && key.label == " "
 
     Box(
         modifier = Modifier.weight(weight).height(kh)
@@ -386,13 +386,22 @@ private fun RowScope.KeyboardKey(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = if (spaceUnderline) "_" else if (pressed && key.longPress != null) key.longPress!! else key.label,
-            color = if (highlighted) bg else fg,
-            fontSize = if (spaceUnderline) 20.sp else fs,
-            fontWeight = if (key.label.length == 1) FontWeight.Medium else FontWeight.Normal,
-            textAlign = TextAlign.Center,
-        )
+        if (isSpaceNoIslands) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.4f)
+                    .height(3.dp)
+                    .background(fg.copy(alpha = 0.2f), RoundedCornerShape(2.dp)),
+            )
+        } else {
+            Text(
+                text = if (pressed && key.longPress != null) key.longPress!! else key.label,
+                color = if (highlighted) bg else fg,
+                fontSize = fs,
+                fontWeight = if (key.label.length == 1) FontWeight.Medium else FontWeight.Normal,
+                textAlign = TextAlign.Center,
+            )
+        }
         if (key.hint != null) {
             Text(
                 text = key.hint,
