@@ -404,9 +404,13 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                 }
             } catch (e: CipherException) {
                 cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase()
+                CipherUiState.setSigningKey(null)
+                CipherUiState.showSignerPicker()
                 CipherUiState.setError(e.message ?: "Sign failed"); CipherUiState.setLoading(false)
             } catch (e: Exception) {
                 cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase()
+                CipherUiState.setSigningKey(null)
+                CipherUiState.showSignerPicker()
                 CipherUiState.setError("Error: ${e.message}"); CipherUiState.setLoading(false)
             }
         }
