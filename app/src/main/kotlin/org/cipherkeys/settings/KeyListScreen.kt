@@ -115,6 +115,11 @@ fun KeyListScreen(
                         Column(Modifier.weight(1f)) {
                             Text("Always encrypt to self", style = MaterialTheme.typography.bodyLarge)
                             Text(
+                                "If disabled, you cannot decrypt messages you send",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Text(
                                 "Automatically add selected key to all encryptions",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
