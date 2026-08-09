@@ -388,9 +388,9 @@ private fun RowScope.KeyboardKey(
     ) {
         if (isSpaceNoIslands) {
             Text(
-                text = "_",
-                color = if (highlighted) bg else fg,
-                fontSize = 22.sp,
+                text = "\u2423",
+                color = if (highlighted) bg else fg.copy(alpha = 0.5f),
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Normal,
                 textAlign = TextAlign.Center,
             )
