@@ -433,7 +433,7 @@ private fun RowScope.KeyboardKey(
     Box(modifier = Modifier.weight(weight)) {
         keyContent()
         if (popoverShown && hasPosition) {
-            val offsetPx = with(density) { 8.dp.roundToPx() }
+            val offsetPx = with(density) { 4.dp.roundToPx() }
             Popup(
                 popupPositionProvider = object : PopupPositionProvider {
                     override fun calculatePosition(
@@ -450,10 +450,10 @@ private fun RowScope.KeyboardKey(
             ) {
                 Box(
                     modifier = Modifier
-                        .background(popoverBg, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                        .background(popoverBg, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                 ) {
-                    Text(popoverLabel, color = popoverFg, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+                    Text(popoverLabel, color = popoverFg, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
