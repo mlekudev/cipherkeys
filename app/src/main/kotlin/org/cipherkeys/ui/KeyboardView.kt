@@ -28,16 +28,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -137,6 +146,13 @@ fun KeyboardView(
     var shiftLocked by remember { mutableStateOf(false) }
     var symLocked by remember { mutableStateOf(false) }
     var backspaceRepeat by remember { mutableStateOf(false) }
+    var popoverState by remember { mutableStateOf<Pair<IntOffset, String>?>(null) }
+
+    LaunchedEffect(popoverState) {
+        if (popoverState != null) { delay(250); popoverState = null }
+    }
+
+    val density = LocalDensity.current
 
     val kill = CipherUiState.state.backspaceKill
     LaunchedEffect(kill) { backspaceRepeat = false }
@@ -250,10 +266,39 @@ fun KeyboardView(
                             onRelease = {
                                 backspaceRepeat = false
                             },
+                            showPopover = { pos, label ->
+                                if (CipherPrefs.popupEnabled && label.length == 1) {
+                                    popoverState = Pair(pos, label)
+                                }
+                            },
                         )
+        }
+        popoverState?.let { (pos, label) ->
+            Popup(
+                popupPositionProvider = object : PopupPositionProvider {
+                    override fun calculatePosition(
+                        anchorBounds: IntRect, windowSize: IntSize,
+                        layoutDirection: LayoutDirection, popupContentSize: IntSize,
+                    ): IntOffset {
+                        val x = (pos.x - popupContentSize.width / 2).coerceIn(0, windowSize.width - popupContentSize.width)
+                        val offsetPx = with(density) { 8.dp.roundToPx() }
+                        val y = pos.y - popupContentSize.height - offsetPx
+                        return IntOffset(x, y.coerceAtLeast(0))
                     }
+                },
+                properties = PopupProperties(focusable = false),
+            ) {
+                Box(
+                    Modifier
+                        .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                ) {
+                    Text(label, color = Color.White, fontSize = 44.sp, fontWeight = FontWeight.Bold)
                 }
             }
+        }
+    }
+}
         }
     }
 }
@@ -266,6 +311,7 @@ private fun RowScope.KeyboardKey(
     onDoubleTap: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
     onRelease: () -> Unit = {},
+    showPopover: (IntOffset, String) -> Unit = { _, _ -> },
 ) {
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -273,16 +319,11 @@ private fun RowScope.KeyboardKey(
     val highlighted = active || pressed
     val kh = CipherPrefs.keyHeightDp.dp
     val isBackspace = key.label == "\u232B"
-
-    var popoverShown by remember { mutableStateOf(false) }
-    val popoverEnabled = CipherPrefs.popupEnabled && key.label.length == 1
-    LaunchedEffect(popoverShown) {
-        if (popoverShown) { delay(250); popoverShown = false }
-    }
+    var posInRoot by remember { mutableStateOf(IntOffset.Zero) }
 
     Box(
         modifier = Modifier.weight(weight).height(kh)
-            .graphicsLayer { clip = false }
+            .onGloballyPositioned { posInRoot = it.positionInRoot().round() }
             .background(if (highlighted) fg else bg, RoundedCornerShape(5.dp))
             .pointerInput(key) {
                 if (isBackspace) {
@@ -309,6 +350,7 @@ private fun RowScope.KeyboardKey(
                                 onRelease()
                                 if (!longPressTriggered) {
                                     if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                                    showPopover(posInRoot, key.label)
                                     onTap()
                                 }
                             }
@@ -318,7 +360,6 @@ private fun RowScope.KeyboardKey(
                     detectTapGestures(
                         onTap = {
                             if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                            if (popoverEnabled) popoverShown = true
                             onTap()
                         },
                         onDoubleTap = {
@@ -332,7 +373,7 @@ private fun RowScope.KeyboardKey(
                     detectTapGestures(
                         onTap = {
                             if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                            if (popoverEnabled) popoverShown = true
+                            showPopover(posInRoot, key.label)
                             onTap()
                         },
                         onLongPress = onLongPress?.let { lp ->
@@ -348,17 +389,6 @@ private fun RowScope.KeyboardKey(
             },
         contentAlignment = Alignment.Center,
     ) {
-        if (popoverShown) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = -(kh + 8.dp))
-                    .background(Color.Black, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 24.dp, vertical = 12.dp)
-            ) {
-                Text(key.label, color = Color.White, fontSize = 44.sp, fontWeight = FontWeight.Bold)
-            }
-        }
         Text(
             text = if (pressed && key.longPress != null) key.longPress!! else key.label,
             color = if (highlighted) bg else fg,
