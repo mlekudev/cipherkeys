@@ -1,7 +1,9 @@
 package org.cipherkeys.ui
 
+import android.media.AudioAttributes
+import android.media.AudioFormat
 import android.media.AudioManager
-import android.media.ToneGenerator
+import android.media.AudioTrack
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -70,20 +72,43 @@ fun KeyboardView(
 
     val haptic = LocalHapticFeedback.current
 
-    val toneGen = remember {
-        if (CipherPrefs.soundEnabled) {
-            ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-        } else null
+    val clickTrack = remember {
+        val sampleRate = 44100
+        val durationMs = 15
+        val numSamples = (sampleRate * durationMs / 1000)
+        val buffer = ShortArray(numSamples)
+        val rng = java.util.Random()
+        for (i in buffer.indices) {
+            val env = 1f - i.toFloat() / numSamples
+            buffer[i] = (rng.nextGaussian() * 16384 * env * env).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+        }
+        AudioTrack(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build(),
+            AudioFormat.Builder()
+                .setSampleRate(sampleRate)
+                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                .build(),
+            numSamples,
+            AudioTrack.MODE_STATIC,
+            AudioManager.AUDIO_SESSION_ID_GENERATE,
+        ).apply { write(buffer, 0, numSamples) }
     }
 
     DisposableEffect(Unit) {
-        onDispose { toneGen?.release() }
+        onDispose { clickTrack.release() }
     }
 
     fun playClick() {
         if (!CipherPrefs.soundEnabled) return
-        val vol = (CipherPrefs.soundVolume * 100).toInt()
-        toneGen?.startTone(ToneGenerator.TONE_DTMF_0, 150)
+        clickTrack.stop()
+        clickTrack.reloadStaticData()
+        val vol = CipherPrefs.soundVolume
+        clickTrack.setVolume(vol)
+        clickTrack.play()
     }
 
     fun doHaptic() {

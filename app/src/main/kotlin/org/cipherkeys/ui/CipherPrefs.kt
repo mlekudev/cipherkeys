@@ -40,7 +40,7 @@ object CipherPrefs {
     var soundEnabled by mutableStateOf(false)
         private set
 
-    var soundVolume by mutableFloatStateOf(0.5f)
+    var soundVolume by mutableFloatStateOf(0.2f)
         private set
 
     var popupEnabled by mutableStateOf(true)
@@ -67,7 +67,7 @@ object CipherPrefs {
         panelLines = prefs!!.getInt(PANEL_LINES, DEFAULT_PANEL_LINES)
         hapticEnabled = prefs!!.getBoolean(HAPTIC_ENABLED, true)
         soundEnabled = prefs!!.getBoolean(SOUND_ENABLED, false)
-        soundVolume = prefs!!.getFloat(SOUND_VOLUME, 0.5f)
+        soundVolume = prefs!!.getFloat(SOUND_VOLUME, 0.2f)
         popupEnabled = prefs!!.getBoolean(POPUP_ENABLED, true)
         keyBgShading = prefs!!.getBoolean(KEY_BG_SHADING, true)
         shiftLockMethod = prefs!!.getString(SHIFT_LOCK_METHOD, "double-tap") ?: "double-tap"
