@@ -272,7 +272,7 @@ fun CipherPanel(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(panelFg.copy(alpha = 0.08f))
-                                .clickable { CipherUiState.setSignExpiry((state.signExpiryDays - 1).coerceAtLeast(0)) }
+                                .clickable { CipherUiState.setSignExpiry((CipherUiState.state.signExpiryDays - 1).coerceAtLeast(0)) }
                                 .padding(horizontal = 6.dp, vertical = 3.dp)
                         ) {
                             Text("-", fontSize = 11.sp, color = dimFg)
@@ -289,7 +289,7 @@ fun CipherPanel(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(panelFg.copy(alpha = 0.08f))
-                                .clickable { CipherUiState.setSignExpiry(state.signExpiryDays + 1) }
+                                .clickable { CipherUiState.setSignExpiry(CipherUiState.state.signExpiryDays + 1) }
                                 .padding(horizontal = 6.dp, vertical = 3.dp)
                         ) {
                             Text("+", fontSize = 11.sp, color = dimFg)

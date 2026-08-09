@@ -1,5 +1,6 @@
 package org.cipherkeys.cipher
 
+import android.util.Log
 import org.bouncycastle.openpgp.PGPPublicKeyRing
 import org.bouncycastle.openpgp.PGPSecretKeyRing
 import org.pgpainless.PGPainless
@@ -130,15 +131,20 @@ class PgpEngine {
         expirySeconds: Long = 0L
     ): String {
         val text = if (expirySeconds > 0) {
-            "[CipherKeys:expires=${System.currentTimeMillis() / 1000 + expirySeconds}]\n$plaintext"
-        } else plaintext
+            val exp = System.currentTimeMillis() / 1000 + expirySeconds
+            Log.d("PgpEngine", "sign with expiry=$expirySeconds sec (until epoch $exp) for text len=${plaintext.length}")
+            "[CipherKeys:expires=$exp]\n$plaintext"
+        } else {
+            Log.d("PgpEngine", "sign without expiry for text len=${plaintext.length}")
+            plaintext
+        }
 
         val protector = SecretKeyRingProtector.unlockAnyKeyWith(
             Passphrase.fromPassword(passphrase)
         )
         val signingOptions = SigningOptions.get()
             .overrideHashAlgorithm(HashAlgorithm.SHA256)
-            .addInlineSignature(
+            .addDetachedSignature(
                 protector,
                 secretKey,
                 DocumentSignatureType.CANONICAL_TEXT_DOCUMENT
@@ -156,38 +162,49 @@ class PgpEngine {
 
         stream.write(text.toByteArray(Charsets.UTF_8))
         stream.close()
-        return String(out.toByteArray())
+        val result = String(out.toByteArray())
+        Log.d("PgpEngine", "sign output len=${result.length}, starts: ${result.take(60)}")
+        return result
     }
 
     fun verifySigned(
         signedMessage: String,
         publicKeys: List<PGPPublicKeyRing>
     ): VerificationResult? {
-        if (publicKeys.isEmpty()) return null
+        if (publicKeys.isEmpty()) {
+            Log.d("PgpEngine", "verifySigned: no public keys")
+            return null
+        }
+        Log.d("PgpEngine", "verifySigned: msgLen=${signedMessage.length}, numKeys=${publicKeys.size}")
         try {
             val options = ConsumerOptions.get()
-            for (key in publicKeys) options.addVerificationCert(key)
+            for (key in publicKeys) {
+                options.addVerificationCert(key)
+                Log.d("PgpEngine", "verifySigned: added key 0x${key.publicKey.keyID.toString(16)}")
+            }
             val input = ByteArrayInputStream(signedMessage.toByteArray(Charsets.UTF_8))
             val output = ByteArrayOutputStream()
             val stream = PGPainless.decryptAndOrVerify()
                 .onInputStream(input)
                 .withOptions(options)
-            stream.use { ds ->
-                val buf = ByteArray(4096)
-                var n: Int
-                while (ds.read(buf).also { n = it } != -1) output.write(buf, 0, n)
-                val meta = ds.metadata
-                if (meta.verifiedSignatures.isNotEmpty()) {
-                    val sig = meta.verifiedSignatures.first()
-                    return VerificationResult(
-                        keyId = sig.signingKey.fingerprint.keyId,
-                        verified = true,
-                        algorithm = sig.signature.hashAlgorithm.toString(),
-                        plaintext = String(output.toByteArray())
-                    )
-                }
+            val buf = ByteArray(4096)
+            var n: Int
+            while (stream.read(buf).also { n = it } != -1) output.write(buf, 0, n)
+            stream.close()
+            val meta = stream.metadata
+            Log.d("PgpEngine", "verifySigned: verifiedSigs=${meta.verifiedSignatures.size}, encrypted=${meta.isEncrypted}")
+            if (meta.verifiedSignatures.isNotEmpty()) {
+                val sig = meta.verifiedSignatures.first()
+                return VerificationResult(
+                    keyId = sig.signingKey.fingerprint.keyId,
+                    verified = true,
+                    algorithm = sig.signature.hashAlgorithm.toString(),
+                    plaintext = String(output.toByteArray())
+                )
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.e("PgpEngine", "verifySigned exception", e)
+        }
         return null
     }
 

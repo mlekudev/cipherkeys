@@ -5,6 +5,7 @@ import android.content.IntentFilter
 import android.inputmethodservice.InputMethodService
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
@@ -129,25 +130,44 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             CipherUiState.cancelBackspaceRepeat()
                             val cm = getSystemService(android.content.ClipboardManager::class.java)
                             val clip = cm?.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                            Log.d("CipherIME", "onPaste: clipLen=${clip.length}, startsWithPGP=${clip.startsWith("-----BEGIN PGP")}")
                             if (clip.isNotEmpty()) {
-                                val allPubKeys = keyManager.listKeys().mapNotNull { keyManager.getPublicKeyRing(it.keyId) }
-                                val result = pgpEngine.verifySigned(clip, allPubKeys)
-                                if (result != null) {
-                                    val stripped = pgpEngine.stripExpiration(result.plaintext)
-                                    CipherUiState.insertTextAtCursor(stripped)
-                                    if (pgpEngine.checkExpired(result.plaintext)) {
-                                        CipherUiState.setInfo("Message expired", isWarning = true)
-                                    } else {
-                                        CipherUiState.setInfo("Message valid", isWarning = false)
-                                    }
-                                } else {
-                                    val extracted = pgpEngine.extractPlaintext(clip)
-                                    if (extracted != null) {
-                                        val stripped = pgpEngine.stripExpiration(extracted)
-                                        CipherUiState.insertTextAtCursor(stripped)
-                                        CipherUiState.setInfo("Invalid signature", isWarning = true)
-                                    } else {
-                                        CipherUiState.insertTextAtCursor(clip)
+                                CipherUiState.setLoading(true)
+                                cryptoExecutor.execute {
+                                    try {
+                                        val allPubKeys = keyManager.listKeys().mapNotNull { keyManager.getPublicKeyRing(it.keyId) }
+                                        Log.d("CipherIME", "onPaste: pubKeys=${allPubKeys.size}")
+                                        val result = pgpEngine.verifySigned(clip, allPubKeys)
+                                        Log.d("CipherIME", "onPaste: verifyResult=$result")
+                                        Handler(Looper.getMainLooper()).post {
+                                            CipherUiState.setLoading(false)
+                                            if (result != null) {
+                                                val stripped = pgpEngine.stripExpiration(result.plaintext)
+                                                CipherUiState.insertTextAtCursor(stripped)
+                                                Log.d("CipherIME", "onPaste: verified, plaintext=${result.plaintext.take(100)}")
+                                                if (pgpEngine.checkExpired(result.plaintext)) {
+                                                    CipherUiState.setInfo("Message expired", isWarning = true)
+                                                } else {
+                                                    CipherUiState.setInfo("Message valid", isWarning = false)
+                                                }
+                                            } else {
+                                                val extracted = pgpEngine.extractPlaintext(clip)
+                                                Log.d("CipherIME", "onPaste: not verified, extracted=$extracted")
+                                                if (extracted != null) {
+                                                    val stripped = pgpEngine.stripExpiration(extracted)
+                                                    CipherUiState.insertTextAtCursor(stripped)
+                                                    CipherUiState.setInfo("Invalid signature", isWarning = true)
+                                                } else {
+                                                    CipherUiState.insertTextAtCursor(clip)
+                                                }
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("CipherIME", "onPaste error", e)
+                                        Handler(Looper.getMainLooper()).post {
+                                            CipherUiState.setLoading(false)
+                                            CipherUiState.insertTextAtCursor(clip)
+                                        }
                                     }
                                 }
                             }
@@ -393,7 +413,9 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
     }
 
     private fun doSign(pw: String) {
-        val s = CipherUiState.state; CipherUiState.setLoading(true)
+        val s = CipherUiState.state
+        Log.d("CipherIME", "doSign: expiryDays=${s.signExpiryDays}, msgLen=${s.composeText.length}, savedLen=${s.savedComposeText.length}, keyId=${s.selectedSigningKeyId}")
+        CipherUiState.setLoading(true)
         cryptoExecutor.execute {
             try {
                 val signKey = s.selectedSigningKeyId?.let { keyManager.getSecretKeyRing(it) }
@@ -411,11 +433,13 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                     CipherUiState.setLoading(false)
                 }
             } catch (e: CipherException) {
+                Log.e("CipherIME", "Sign CipherException", e)
                 cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase()
                 CipherUiState.setSigningKey(null)
                 CipherUiState.showSignerPicker()
                 CipherUiState.setError(e.message ?: "Sign failed"); CipherUiState.setLoading(false)
             } catch (e: Exception) {
+                Log.e("CipherIME", "Sign exception", e)
                 cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase()
                 CipherUiState.setSigningKey(null)
                 CipherUiState.showSignerPicker()
