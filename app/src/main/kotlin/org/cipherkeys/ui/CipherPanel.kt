@@ -253,6 +253,7 @@ fun CipherPanel(
                             onClick = {
                                 val sendAfter = CipherUiState.shouldSendAfterPicker()
                                 CipherUiState.hideRecipientPicker()
+                                CipherUiState.setLoading(true)
                                 if (sendAfter) onSend() else onEncrypt()
                             },
                             enabled = state.selectedRecipientIds.isNotEmpty(),
