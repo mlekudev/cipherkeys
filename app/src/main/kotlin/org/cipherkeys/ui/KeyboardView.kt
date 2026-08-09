@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,7 +30,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -311,8 +312,7 @@ private fun RowScope.KeyboardKey(
 
     Box(
         modifier = Modifier.weight(weight).height(kh)
-            .clip(RoundedCornerShape(5.dp))
-            .background(if (highlighted) fg else bg)
+            .background(if (highlighted) fg else bg, RoundedCornerShape(5.dp))
             .pointerInput(key) {
                 if (isBackspace) {
                     coroutineScope {
@@ -387,12 +387,10 @@ private fun RowScope.KeyboardKey(
         contentAlignment = Alignment.Center,
     ) {
         if (isSpaceNoIslands) {
-            Text(
-                text = "\u2423",
-                color = if (highlighted) bg else fg.copy(alpha = 0.5f),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Normal,
-                textAlign = TextAlign.Center,
+            Box(
+                modifier = Modifier
+                    .size(width = 28.dp, height = 18.dp)
+                    .border(1.5.dp, fg.copy(alpha = 0.35f), RoundedCornerShape(3.dp)),
             )
         } else {
             Text(
@@ -418,8 +416,7 @@ private fun RowScope.KeyboardKey(
                     .align(Alignment.TopCenter)
                     .offset(y = -(kh + 8.dp))
                     .zIndex(100f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(popoverBg)
+                    .background(popoverBg, RoundedCornerShape(12.dp))
                     .padding(horizontal = 24.dp, vertical = 12.dp),
             ) {
                 Text(key.label, color = popoverFg, fontSize = 44.sp, fontWeight = FontWeight.Bold)
