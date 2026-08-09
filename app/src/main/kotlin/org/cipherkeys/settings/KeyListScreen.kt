@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +54,12 @@ fun KeyListScreen(
     val context = LocalContext.current
     var keys by remember { mutableStateOf(keyManager.listKeys()) }
     var showDeleteDialog by remember { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(keys) {
+        if (CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId == null && keys.isNotEmpty()) {
+            CipherPrefs.updateEncryptToSelfKeyId(keys.first().keyId)
+        }
+    }
 
     fun refresh() { keys = keyManager.listKeys() }
 
@@ -115,7 +122,12 @@ fun KeyListScreen(
                         }
                         Switch(
                             checked = CipherPrefs.encryptToSelf,
-                            onCheckedChange = { CipherPrefs.updateEncryptToSelf(it) },
+                            onCheckedChange = { v ->
+                                CipherPrefs.updateEncryptToSelf(v)
+                                if (v && CipherPrefs.encryptToSelfKeyId == null && keys.isNotEmpty()) {
+                                    CipherPrefs.updateEncryptToSelfKeyId(keys.first().keyId)
+                                }
+                            },
                         )
                     }
                     if (CipherPrefs.encryptToSelf) {
