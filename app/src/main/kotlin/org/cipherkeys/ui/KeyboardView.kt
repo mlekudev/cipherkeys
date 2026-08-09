@@ -387,11 +387,12 @@ private fun RowScope.KeyboardKey(
         contentAlignment = Alignment.Center,
     ) {
         if (isSpaceNoIslands) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.4f)
-                    .height(3.dp)
-                    .background(fg.copy(alpha = 0.2f), RoundedCornerShape(2.dp)),
+            Text(
+                text = "_",
+                color = if (highlighted) bg else fg,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Normal,
+                textAlign = TextAlign.Center,
             )
         } else {
             Text(
