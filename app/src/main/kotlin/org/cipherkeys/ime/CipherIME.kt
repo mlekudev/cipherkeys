@@ -91,7 +91,9 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             if (s.isActive && s.selectedRecipientIds.isNotEmpty() && s.composeText.isNotBlank()) {
                                 encryptAndSend(cachedPassphrase)
                             } else if (s.isActive && s.selectedRecipientIds.isEmpty() && s.composeText.isNotBlank()) {
-                                if (recipientManager.listRecipients().isEmpty()) {
+                                if (CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId != null) {
+                                    encryptAndSend(cachedPassphrase)
+                                } else if (recipientManager.listRecipients().isEmpty()) {
                                     CipherUiState.setError("Add recipients via person icon")
                                 } else {
                                     CipherUiState.showRecipientPicker(sendAfter = true)
@@ -264,6 +266,8 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             if (s.isActive && s.composeText.isNotBlank()) {
                                 if (s.selectedRecipientIds.isNotEmpty()) {
                                     encryptAndSend(cachedPassphrase)
+                                } else if (CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId != null) {
+                                    encryptAndSend(cachedPassphrase)
                                 } else if (recipientManager.listRecipients().isEmpty()) {
                                     CipherUiState.setError("Add recipients via person icon")
                                 } else {
@@ -310,7 +314,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             return
         }
         if (s.composeText.isBlank()) { CipherUiState.setError("Enter text to encrypt"); return }
-        if (s.selectedRecipientIds.isEmpty()) {
+        if (s.selectedRecipientIds.isEmpty() && !(CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId != null)) {
             if (recipientManager.listRecipients().isEmpty()) {
                 CipherUiState.setError("Add recipients via person icon")
             } else {
