@@ -399,6 +399,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         cryptoExecutor.execute {
             try {
                 val allKeys = keyManager.listKeys().mapNotNull { keyManager.getSecretKeyRing(it.keyId) }
+                Log.d("CipherIME", "doDecrypt: numKeys=${allKeys.size}, keyIDs=${allKeys.map { String.format("%016X", it.publicKey.keyID) }}")
                 if (allKeys.isEmpty()) { CipherUiState.setError("No keys stored"); if (s.pendingAction != null) CipherUiState.cancelPassphrase(); return@execute }
                 val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
                 val r = pgpEngine.decryptTryAll(msg, allKeys, pw)
@@ -406,8 +407,8 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                 CipherUiState.updateComposeText(r)
                 CipherUiState.clearPendingAndSaved()
                 CipherUiState.clearError()
-            } catch (e: CipherException) { cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase(); CipherUiState.setError(e.message ?: "Wrong passphrase?") }
-            catch (e: Exception) { cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase(); CipherUiState.setError("Error: ${e.message}") }
+            } catch (e: CipherException) { Log.e("CipherIME", "Decrypt CipherException", e); cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase(); CipherUiState.setError(e.message ?: "Wrong passphrase?") }
+            catch (e: Exception) { Log.e("CipherIME", "Decrypt exception", e); cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase(); CipherUiState.setError("Error: ${e.message}") }
             finally { CipherUiState.setLoading(false) }
         }
     }
@@ -450,19 +451,24 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
 
     private fun getEncryptRecipients(s: org.cipherkeys.ui.CipherState): List<org.bouncycastle.openpgp.PGPPublicKeyRing> {
         val recips = s.selectedRecipientIds.mapNotNull { recipientManager.getRecipientPublicKey(it) }.toMutableList()
+        Log.d("CipherIME", "getEncryptRecipients: selectedRids=${s.selectedRecipientIds}, encryptToSelf=${CipherPrefs.encryptToSelf}, selfKeyId=${CipherPrefs.encryptToSelfKeyId}")
         if (CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId != null) {
             val selfKeyId = CipherPrefs.encryptToSelfKeyId!!
             val selfKey = keyManager.listKeys().find { it.keyId == selfKeyId }
+            Log.d("CipherIME", "getEncryptRecipients: selfKey found=${selfKey != null}")
             if (selfKey != null) {
                 val alreadyIn = s.selectedRecipientIds.any { rid ->
                     recipientManager.getRecipientPublicKey(rid)?.publicKey?.keyID == selfKeyId
                 }
+                Log.d("CipherIME", "getEncryptRecipients: alreadyIn=$alreadyIn")
                 if (!alreadyIn) {
                     val selfPub = keyManager.getPublicKeyRing(selfKeyId)
+                    Log.d("CipherIME", "getEncryptRecipients: selfPub=${selfPub != null}, adding")
                     if (selfPub != null) recips.add(selfPub)
                 }
             }
         }
+        Log.d("CipherIME", "getEncryptRecipients: total recips=${recips.size}")
         return recips
     }
 
