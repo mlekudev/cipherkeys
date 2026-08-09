@@ -4,7 +4,6 @@ import android.media.AudioAttributes
 import android.media.SoundPool
 import java.io.File
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -316,7 +315,6 @@ private fun RowScope.KeyboardKey(
         }
     }
 
-    val isSpaceNoIslands = !CipherPrefs.keyBgShading && key.label == " "
     val dark = isSystemInDarkTheme()
     val popoverBg = if (dark) Color(0xFF333333) else Color(0xFFCCCCCC)
     val popoverFg = if (dark) Color.White else Color.Black
@@ -393,11 +391,13 @@ private fun RowScope.KeyboardKey(
             },
         contentAlignment = Alignment.Center,
     ) {
-        if (isSpaceNoIslands) {
-            Box(
-                modifier = Modifier
-                    .size(width = 28.dp, height = 18.dp)
-                    .border(1.5.dp, fg.copy(alpha = 0.35f), RoundedCornerShape(3.dp)),
+        if (key.label == " ") {
+            Text(
+                text = "\u2423",
+                color = fg.copy(alpha = 0.5f),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Normal,
+                textAlign = TextAlign.Center,
             )
         } else {
             Text(
