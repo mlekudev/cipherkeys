@@ -136,7 +136,7 @@ class PgpEngine {
             Passphrase.fromPassword(passphrase)
         )
         val signingOptions = SigningOptions.get()
-            .addInlineSignature(
+            .addDetachedSignature(
                 protector,
                 secretKey,
                 DocumentSignatureType.CANONICAL_TEXT_DOCUMENT
@@ -144,7 +144,6 @@ class PgpEngine {
 
         val producerOptions = ProducerOptions.sign(signingOptions).apply {
             setAsciiArmor(true)
-            setCleartextSigned()
         }
 
         val out = ByteArrayOutputStream()
@@ -154,7 +153,9 @@ class PgpEngine {
 
         stream.write(text.toByteArray(Charsets.UTF_8))
         stream.close()
-        return String(out.toByteArray())
+
+        val armoredSig = String(out.toByteArray())
+        return "-----BEGIN PGP SIGNED MESSAGE-----\nHash: SHA256\n\n${text}\n$armoredSig"
     }
 
     fun extractPlaintext(signedMessage: String): String? {
