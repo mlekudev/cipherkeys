@@ -24,7 +24,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,7 +42,6 @@ fun MainSettingsScreen(
     onKeyboardClick: () -> Unit = {},
     onHelpClick: () -> Unit = {},
 ) {
-    var keyH by remember { mutableIntStateOf(CipherPrefs.keyHeightDp) }
     var lines by remember { mutableIntStateOf(CipherPrefs.panelLines) }
 
     Column(
@@ -93,24 +91,6 @@ fun MainSettingsScreen(
             onClick = onHelpClick,
         )
         Spacer(Modifier.height(16.dp))
-
-        // Key height slider
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Key Height: ${keyH}dp", style = MaterialTheme.typography.titleMedium)
-                Slider(
-                    value = keyH.toFloat(),
-                    onValueChange = { keyH = it.toInt(); CipherPrefs.updateKeyHeight(keyH) },
-                    valueRange = 34f..60f,
-                    steps = 12,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        Spacer(Modifier.height(8.dp))
 
         // Panel lines control
         Card(

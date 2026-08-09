@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,6 +33,7 @@ fun SettingsKeyboardScreen() {
     var haptic by remember { mutableStateOf(CipherPrefs.hapticEnabled) }
     var sound by remember { mutableStateOf(CipherPrefs.soundEnabled) }
     var volume by remember { mutableFloatStateOf(CipherPrefs.soundVolume) }
+    var keyH by remember { mutableIntStateOf(CipherPrefs.keyHeightDp) }
     var popup by remember { mutableStateOf(CipherPrefs.popupEnabled) }
     var keyBg by remember { mutableStateOf(CipherPrefs.keyBgShading) }
     var shiftLock by remember { mutableStateOf(CipherPrefs.shiftLockMethod) }

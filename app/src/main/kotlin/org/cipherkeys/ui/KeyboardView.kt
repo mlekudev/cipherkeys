@@ -97,12 +97,6 @@ fun KeyboardView(
     var shiftLocked by remember { mutableStateOf(false) }
     var symLocked by remember { mutableStateOf(false) }
     var backspaceRepeat by remember { mutableStateOf(false) }
-    var popoverKey by remember { mutableStateOf<String?>(null) }
-    var popoverShown by remember { mutableStateOf(false) }
-
-    LaunchedEffect(popoverShown) {
-        if (popoverShown) { delay(250); popoverShown = false; popoverKey = null }
-    }
 
     val kill = CipherUiState.state.backspaceKill
     LaunchedEffect(kill) { backspaceRepeat = false }
@@ -197,10 +191,6 @@ fun KeyboardView(
                                 backspaceRepeat = false
                                 doHaptic()
                                 playClick()
-                                if (CipherPrefs.popupEnabled && key.label.length == 1) {
-                                    popoverKey = key.label
-                                    popoverShown = true
-                                }
                                 onKey(key)
                             },
                             onDoubleTap = if (useDoubleTap) {
@@ -225,19 +215,6 @@ fun KeyboardView(
                 }
             }
         }
-        if (popoverShown && popoverKey != null) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = (-24).dp)
-                    .graphicsLayer { alpha = 0.9f }
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.Black)
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
-            ) {
-                Text(popoverKey!!, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            }
-        }
     }
 }
 
@@ -257,9 +234,16 @@ private fun RowScope.KeyboardKey(
     val kh = CipherPrefs.keyHeightDp.dp
     val isBackspace = key.label == "\u232B"
 
+    var popoverShown by remember { mutableStateOf(false) }
+    val popoverEnabled = CipherPrefs.popupEnabled && key.label.length == 1
+    LaunchedEffect(popoverShown) {
+        if (popoverShown) { delay(250); popoverShown = false }
+    }
+
     Box(
-        modifier = Modifier.weight(weight).height(kh).clip(RoundedCornerShape(5.dp))
-            .background(if (highlighted) fg else bg)
+        modifier = Modifier.weight(weight).height(kh)
+            .graphicsLayer { clip = false }
+            .background(if (highlighted) fg else bg, RoundedCornerShape(5.dp))
             .pointerInput(key) {
                 if (isBackspace) {
                     coroutineScope {
@@ -294,6 +278,7 @@ private fun RowScope.KeyboardKey(
                     detectTapGestures(
                         onTap = {
                             if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                            if (popoverEnabled) popoverShown = true
                             onTap()
                         },
                         onDoubleTap = {
@@ -307,6 +292,7 @@ private fun RowScope.KeyboardKey(
                     detectTapGestures(
                         onTap = {
                             if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                            if (popoverEnabled) popoverShown = true
                             onTap()
                         },
                         onLongPress = onLongPress?.let { lp ->
@@ -322,6 +308,17 @@ private fun RowScope.KeyboardKey(
             },
         contentAlignment = Alignment.Center,
     ) {
+        if (popoverShown) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = -(kh + 8.dp))
+                    .background(Color.Black, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Text(key.label, color = Color.White, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+            }
+        }
         Text(
             text = if (pressed && key.longPress != null) key.longPress!! else key.label,
             color = if (highlighted) bg else fg,
