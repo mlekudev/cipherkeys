@@ -304,7 +304,7 @@ private fun RowScope.KeyboardKey(
     var popoverShown by remember { mutableStateOf(false) }
     var popoverLabel by remember { mutableStateOf("") }
     var mySerial by remember { mutableStateOf(0L) }
-    val popoverEnabled = CipherPrefs.popupEnabled && key.label.length == 1
+    val popoverEnabled = CipherPrefs.popupEnabled && key.label.length == 1 && key.label[0] != ' '
 
     fun showPopover(serial: Long, label: String) {
         mySerial = serial
