@@ -12,7 +12,13 @@ Android keyboard with PGP encryption.
 - Inline compose panel with blinking cursor, tap-to-position, and auto-scroll
 - Encrypt-and-send via long-press on enter key
 - Long-press number keys on top row
-- Shift lock and symbol lock (long-press)
+- Haptic and sound feedback on key press (configurable)
+- Key press popover showing pressed character above the key
+- Shift lock and symbol lock (double-tap or long-press, configurable)
+- Auto-capitalize after sentence-ending punctuation
+- Configurable key height, key background shading
+- Inline recipient picker when encrypting without recipients selected
+- Send and long-press Enter encrypt-and-send to app input
 - Backspace repeat on long-press
 - Interactive help system
 
@@ -30,6 +36,7 @@ Android keyboard with PGP encryption.
 | [v1.0.5](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.5.apk) |
 | [v1.0.6](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.6.apk) |
 | [v1.0.7](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.7.apk) |
+| [v1.0.8](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.8.apk) |
 
 ## Build
 
