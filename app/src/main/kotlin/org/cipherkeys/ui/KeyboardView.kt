@@ -139,7 +139,7 @@ fun KeyboardView(
 
     fun doHaptic() {
         if (CipherPrefs.hapticEnabled) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         }
     }
 
@@ -152,9 +152,14 @@ fun KeyboardView(
     var popoverLabel by remember { mutableStateOf<String?>(null) }
     var popoverPos by remember { mutableStateOf(IntOffset.Zero) }
     var popoverVisible by remember { mutableStateOf(false) }
+    var popoverTick by remember { mutableStateOf(0L) }
 
-    LaunchedEffect(popoverVisible) {
-        if (popoverVisible) { delay(300); popoverVisible = false }
+    LaunchedEffect(popoverTick) {
+        if (popoverTick > 0L) {
+            delay(300)
+            popoverVisible = false
+            popoverTick = 0L
+        }
     }
 
     fun showPopover(pos: IntOffset, label: String) {
@@ -162,6 +167,7 @@ fun KeyboardView(
         popoverPos = pos
         popoverLabel = label
         popoverVisible = true
+        popoverTick = System.nanoTime()
     }
 
     val kill = CipherUiState.state.backspaceKill
@@ -243,18 +249,18 @@ fun KeyboardView(
                             "<" -> 0.7f; ">" -> 0.7f
                             else -> 1f
                         }
-                        val forceBg = !CipherPrefs.keyBgShading && key.label == " "
-                        val bg = when {
-                            forceBg -> rawKeyBg
-                            isSpecial -> specialBg
-                            else -> keyBg
-                        }
+                        val bg = if (isSpecial) specialBg else keyBg
                         val fs = when (key.label) {
                             "\u232B", "\u21B5", "\u21E7" -> 28.sp
                             "?123", "ABC", "=\\<" -> 14.sp
                             else -> if (isSpecial) 14.sp else 20.sp
                         }
-                        val displayKey = if (showLockHint && key.label == "\u21B5") key.copy(hint = "\uD83D\uDD12") else key
+                        val isSpace = key.label == " "
+                        val displayKey = when {
+                            showLockHint && key.label == "\u21B5" -> key.copy(hint = "\uD83D\uDD12")
+                            isSpace && !CipherPrefs.keyBgShading -> key.copy(hint = "]")
+                            else -> key
+                        }
                         val useDoubleTap =
                             (key.label == "\u21E7" && shiftNeedDoubleTap) ||
                                 (key.label == "?123" && symNeedDoubleTap)
@@ -267,9 +273,9 @@ fun KeyboardView(
                                 playClick()
                                 onKey(key)
                             },
-                            onDoubleTap = if (useDoubleTap) {
-                                { onDoubleTap(key) }
-                            } else null,
+                        onDoubleTap = if (useDoubleTap) {
+                            { onDoubleTap(key) }
+                        } else null,
                             onLongPress = if (useDoubleTap) null else {
                                 {
                                     if (key.label == "\u232B") {
@@ -381,7 +387,9 @@ private fun RowScope.KeyboardKey(
                             onTap()
                         },
                         onDoubleTap = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (CipherPrefs.hapticEnabled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
                             pressed = true
                             onDoubleTap()
                             scope.launch { delay(100); pressed = false }
