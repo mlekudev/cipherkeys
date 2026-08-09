@@ -149,7 +149,7 @@ fun KeyboardView(
     var popoverState by remember { mutableStateOf<Pair<IntOffset, String>?>(null) }
 
     LaunchedEffect(popoverState) {
-        if (popoverState != null) { delay(250); popoverState = null }
+        if (popoverState != null) { delay(300); popoverState = null }
     }
 
     val density = LocalDensity.current
