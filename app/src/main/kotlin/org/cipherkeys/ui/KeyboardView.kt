@@ -1,5 +1,7 @@
 package org.cipherkeys.ui
 
+import android.media.AudioManager
+import android.media.ToneGenerator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -56,19 +60,50 @@ fun KeyboardView(
     modifier: Modifier = Modifier,
 ) {
     val dark = isSystemInDarkTheme()
-    val keyBg = if (dark) Color(0xFF4A4A4A) else Color(0xFFD6D6D6)
+    val rawKeyBg = if (dark) Color(0xFF4A4A4A) else Color(0xFFD6D6D6)
     val keyFg = if (dark) Color(0xFFE0E0E0) else Color(0xFF1A1A1A)
-    val specialBg = if (dark) Color(0xFF383838) else Color(0xFFC0C0C0)
+    val rawSpecialBg = if (dark) Color(0xFF383838) else Color(0xFFC0C0C0)
     val kbBg = if (dark) Color(0xFF222222) else Color(0xFFF0F0F0)
     val hintFg = keyFg.copy(alpha = 0.45f)
+    val keyBg = if (CipherPrefs.keyBgShading) rawKeyBg else kbBg
+    val specialBg = if (CipherPrefs.keyBgShading) rawSpecialBg else kbBg
+
+    val haptic = LocalHapticFeedback.current
+
+    val toneGen = remember {
+        if (CipherPrefs.soundEnabled) {
+            ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+        } else null
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { toneGen?.release() }
+    }
+
+    fun playClick() {
+        if (!CipherPrefs.soundEnabled) return
+        val vol = (CipherPrefs.soundVolume * 100).toInt()
+        toneGen?.startTone(ToneGenerator.TONE_DTMF_0, 150)
+    }
+
+    fun doHaptic() {
+        if (CipherPrefs.hapticEnabled) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
 
     var mode by remember { mutableStateOf(KbMode.ALPHA) }
     var shift by remember { mutableStateOf(false) }
     var shiftLocked by remember { mutableStateOf(false) }
     var symLocked by remember { mutableStateOf(false) }
     var backspaceRepeat by remember { mutableStateOf(false) }
+    var popoverKey by remember { mutableStateOf<String?>(null) }
+    var popoverShown by remember { mutableStateOf(false) }
 
-    // Cancel repeat on any external action (paste, encrypt, settings, etc.)
+    LaunchedEffect(popoverShown) {
+        if (popoverShown) { delay(250); popoverShown = false; popoverKey = null }
+    }
+
     val kill = CipherUiState.state.backspaceKill
     LaunchedEffect(kill) { backspaceRepeat = false }
 
@@ -102,65 +137,105 @@ fun KeyboardView(
             else -> {
                 onChar(key.label)
                 if (shift && !shiftLocked && mode == KbMode.ALPHA) shift = false
-                if (!symLocked && mode != KbMode.ALPHA) mode = KbMode.ALPHA
+                if (!symLocked && CipherPrefs.symAutoReturn && mode != KbMode.ALPHA) mode = KbMode.ALPHA
             }
         }
     }
 
     fun onLongPress(key: KbKey) {
-        if (key.label == "\u21E7") {
+        if (key.label == "\u21E7" && CipherPrefs.shiftLockMethod == "long-press") {
             shiftLocked = true; shift = true; return
         }
-        if (key.label == "?123") {
+        if (key.label == "?123" && CipherPrefs.symLockMethod == "long-press") {
             symLocked = true; mode = KbMode.SYM; return
         }
         key.longPress?.let { onChar(it) }
     }
 
-    Column(
-        modifier = modifier.fillMaxWidth().background(kbBg).padding(horizontal = 3.dp, vertical = 3.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        rows.forEach { row ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                row.forEach { key ->
-                    val isSpecial = key.label.length > 1
-                    val w = when (key.label) {
-                        "\u232B" -> 1.6f; "\u21B5" -> 1.6f
-                        "\u21E7" -> 1.4f; "?123" -> 1.6f; "ABC" -> 1.6f; "=\\<" -> 1.6f
-                        " " -> if (mode == KbMode.ALPHA) 4.5f else 3.0f
-                        "," -> 0.7f; "." -> 0.7f; "_" -> 0.8f; "/" -> 0.8f
-                        "<" -> 0.7f; ">" -> 0.7f
-                        else -> 1f
+    fun onDoubleTap(key: KbKey) {
+        if (key.label == "\u21E7" && CipherPrefs.shiftLockMethod == "double-tap") {
+            shiftLocked = true; shift = true
+        }
+        if (key.label == "?123" && CipherPrefs.symLockMethod == "double-tap") {
+            symLocked = true; mode = KbMode.SYM
+        }
+    }
+
+    val shiftDoubleTap = CipherPrefs.shiftLockMethod == "double-tap"
+    val symDoubleTap = CipherPrefs.symLockMethod == "double-tap"
+    val shiftNeedDoubleTap = shiftDoubleTap || CipherPrefs.shiftLockMethod == "off" && shiftLocked
+    val symNeedDoubleTap = symDoubleTap || CipherPrefs.symLockMethod == "off" && symLocked
+
+    Box(modifier = modifier.fillMaxWidth().background(kbBg).padding(horizontal = 3.dp, vertical = 3.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            rows.forEach { row ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    row.forEach { key ->
+                        val isSpecial = key.label.length > 1
+                        val w = when (key.label) {
+                            "\u232B" -> 1.6f; "\u21B5" -> 1.6f
+                            "\u21E7" -> 1.4f; "?123" -> 1.6f; "ABC" -> 1.6f; "=\\<" -> 1.6f
+                            " " -> if (mode == KbMode.ALPHA) 4.5f else 3.0f
+                            "," -> 0.7f; "." -> 0.7f; "_" -> 0.8f; "/" -> 0.8f
+                            "<" -> 0.7f; ">" -> 0.7f
+                            else -> 1f
+                        }
+                        val bg = if (isSpecial) specialBg else keyBg
+                        val fs = when (key.label) {
+                            "\u232B", "\u21B5", "\u21E7" -> 28.sp
+                            "?123", "ABC", "=\\<" -> 14.sp
+                            else -> if (isSpecial) 14.sp else 20.sp
+                        }
+                        val displayKey = if (showLockHint && key.label == "\u21B5") key.copy(hint = "\uD83D\uDD12") else key
+                        val useDoubleTap =
+                            (key.label == "\u21E7" && shiftNeedDoubleTap) ||
+                                (key.label == "?123" && symNeedDoubleTap)
+                        KeyboardKey(
+                            displayKey, w, bg, keyFg, hintFg, fs,
+                            active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")) || (mode == KbMode.SYM2 && key.label == "=\\<"),
+                            onTap = {
+                                backspaceRepeat = false
+                                doHaptic()
+                                playClick()
+                                if (CipherPrefs.popupEnabled && key.label.length == 1) {
+                                    popoverKey = key.label
+                                    popoverShown = true
+                                }
+                                onKey(key)
+                            },
+                            onDoubleTap = if (useDoubleTap) {
+                                { onDoubleTap(key) }
+                            } else null,
+                            onLongPress = if (useDoubleTap) null else {
+                                {
+                                    if (key.label == "\u232B") {
+                                        backspaceRepeat = true
+                                    } else if (key.label == "\u21B5") {
+                                        onEnterLongPress()
+                                    } else {
+                                        onLongPress(key)
+                                    }
+                                }
+                            },
+                            onRelease = {
+                                backspaceRepeat = false
+                            },
+                        )
                     }
-                    val bg = if (isSpecial) specialBg else keyBg
-                    val fs = when (key.label) {
-                        "\u232B", "\u21B5", "\u21E7" -> 28.sp
-                        "?123", "ABC", "=\\<" -> 14.sp
-                        else -> if (isSpecial) 14.sp else 20.sp
-                    }
-                    val displayKey = if (showLockHint && key.label == "\u21B5") key.copy(hint = "\uD83D\uDD12") else key
-                    KeyboardKey(
-                        displayKey, w, bg, keyFg, hintFg, fs,
-                        active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")) || (mode == KbMode.SYM2 && key.label == "=\\<"),
-                        onTap = {
-                            backspaceRepeat = false
-                            onKey(key)
-                        },
-                        onLongPress = {
-                            if (key.label == "\u232B") {
-                                backspaceRepeat = true
-                            } else if (key.label == "\u21B5") {
-                                onEnterLongPress()
-                            } else {
-                                onLongPress(key)
-                            }
-                        },
-                        onRelease = {
-                            backspaceRepeat = false
-                        },
-                    )
                 }
+            }
+        }
+        if (popoverShown && popoverKey != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-24).dp)
+                    .graphicsLayer { alpha = 0.9f }
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Black)
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Text(popoverKey!!, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -170,7 +245,9 @@ fun KeyboardView(
 private fun RowScope.KeyboardKey(
     key: KbKey, weight: Float, bg: Color, fg: Color, hintFg: Color, fs: androidx.compose.ui.unit.TextUnit,
     active: Boolean = false,
-    onTap: () -> Unit, onLongPress: () -> Unit,
+    onTap: () -> Unit,
+    onDoubleTap: (() -> Unit)? = null,
+    onLongPress: (() -> Unit)? = null,
     onRelease: () -> Unit = {},
 ) {
     val haptic = LocalHapticFeedback.current
@@ -186,45 +263,59 @@ private fun RowScope.KeyboardKey(
             .pointerInput(key) {
                 if (isBackspace) {
                     coroutineScope {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            val longPressTimeout = viewConfiguration.longPressTimeoutMillis
-                            var longPressTriggered = false
-                            val longPressJob = launch {
-                                delay(longPressTimeout.toLong())
-                                longPressTriggered = true
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                pressed = true
-                                onLongPress()
-                            }
-                            // Wait for release
-                            var released = false
-                            while (!released) {
-                                val event = awaitPointerEvent()
-                                if (event.changes.all { it.isConsumed || !it.pressed }) released = true
-                            }
-                            longPressJob.cancel()
-                            pressed = false
-                            onRelease()
-                            if (!longPressTriggered) {
-                                if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                                onTap()
+                        awaitPointerEventScope {
+                            while (true) {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                                var longPressTriggered = false
+                                val longPressJob = launch {
+                                    delay(longPressTimeout.toLong())
+                                    longPressTriggered = true
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    pressed = true
+                                    onLongPress?.invoke()
+                                }
+                                var released = false
+                                while (!released) {
+                                    val event = awaitPointerEvent()
+                                    if (event.changes.all { it.isConsumed || !it.pressed }) released = true
+                                }
+                                longPressJob.cancel()
+                                pressed = false
+                                onRelease()
+                                if (!longPressTriggered) {
+                                    if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                                    onTap()
+                                }
                             }
                         }
                     }
-                    }
+                } else if (onDoubleTap != null) {
+                    detectTapGestures(
+                        onTap = {
+                            if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                            onTap()
+                        },
+                        onDoubleTap = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            pressed = true
+                            onDoubleTap()
+                            scope.launch { delay(100); pressed = false }
+                        },
+                    )
                 } else {
                     detectTapGestures(
                         onTap = {
                             if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
                             onTap()
                         },
-                        onLongPress = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            pressed = true
-                            onLongPress()
-                            scope.launch { delay(100); pressed = false }
+                        onLongPress = onLongPress?.let { lp ->
+                            {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                pressed = true
+                                lp()
+                                scope.launch { delay(100); pressed = false }
+                            }
                         },
                     )
                 }

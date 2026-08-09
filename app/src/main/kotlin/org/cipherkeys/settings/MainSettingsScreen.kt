@@ -1,6 +1,7 @@
 package org.cipherkeys.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +40,7 @@ import org.cipherkeys.ui.CipherPrefs
 fun MainSettingsScreen(
     onKeysClick: () -> Unit,
     onRecipientsClick: () -> Unit,
+    onKeyboardClick: () -> Unit = {},
     onHelpClick: () -> Unit = {},
 ) {
     var keyH by remember { mutableIntStateOf(CipherPrefs.keyHeightDp) }
@@ -64,6 +66,25 @@ fun MainSettingsScreen(
             icon = { Icon(Icons.Default.People, null, tint = MaterialTheme.colorScheme.primary) },
             onClick = onRecipientsClick,
         )
+        Spacer(Modifier.height(12.dp))
+        Card(
+            onClick = onKeyboardClick,
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Box(
+                    modifier = Modifier.height(24.dp).width(36.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("Abc", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Keyboard", style = MaterialTheme.typography.titleMedium)
+                Text("Haptic, sound, popup, capitalization, and key behavior",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         Spacer(Modifier.height(12.dp))
         SettingsCard(
             title = "Help",

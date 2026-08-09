@@ -122,8 +122,12 @@ fun SettingsNav(
                 MainSettingsScreen(
                     onKeysClick = { navController.navigate("keys") },
                     onRecipientsClick = { navController.navigate("recipients") },
+                    onKeyboardClick = { navController.navigate("keyboard") },
                     onHelpClick = { navController.navigate("help") },
                 )
+            }
+            composable("keyboard") {
+                SettingsKeyboardScreen()
             }
             composable("keys") {
                 KeyListScreen(
@@ -180,6 +184,7 @@ private fun getTitle(route: String?): String {
         route == null -> "CipherKeys Settings"
         route.startsWith("help/") -> "Help"
         route == "help" -> "Help"
+        route == "keyboard" -> "Keyboard"
         route.startsWith("keys/generate") -> "Generate Key"
         route.startsWith("keys/import") -> "Import Key"
         route.startsWith("keys") -> "Keys"

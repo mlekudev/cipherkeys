@@ -27,6 +27,7 @@ import org.cipherkeys.cipher.CipherException
 import org.cipherkeys.cipher.KeyManager
 import org.cipherkeys.cipher.KeyStore
 import org.cipherkeys.cipher.PgpEngine
+import org.cipherkeys.cipher.RecipientInfo
 import org.cipherkeys.cipher.RecipientManager
 import org.cipherkeys.settings.CipherSettingsActivity
 import org.cipherkeys.ui.CipherPanel
@@ -120,6 +121,8 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             startActivity(Intent(this@CipherIME, CipherSettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("screen", "recipients"))
                         },
                         signingKeyName = signName,
+                        allRecipients = recipientManager.listRecipients(),
+                        onToggleRecipient = { id -> CipherUiState.toggleRecipient(id) },
                     )
 
                     KeyboardView(
@@ -127,7 +130,23 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             if (CipherUiState.state.isActive) {
                                 CipherUiState.insertAtCursor(c)
                             } else {
-                                currentInputConnection?.commitText(c, 1)
+                                val ic = currentInputConnection
+                                if (ic != null && CipherPrefs.autoCapitalize) {
+                                    val prev = ic.getTextBeforeCursor(3, 0)
+                                    val shouldCap = prev == null || prev.isEmpty() ||
+                                        prev.trimEnd().endsWith(".") ||
+                                        prev.trimEnd().endsWith("!") ||
+                                        prev.trimEnd().endsWith("?") ||
+                                        prev.trimEnd().endsWith(".\n") ||
+                                        prev.trimEnd().endsWith("!\n") ||
+                                        prev.trimEnd().endsWith("?\n")
+                                    val char = if (shouldCap && c.length == 1 && c[0].isLowerCase()) {
+                                        c.uppercase()
+                                    } else c
+                                    ic.commitText(char, 1)
+                                } else {
+                                    currentInputConnection?.commitText(c, 1)
+                                }
                             }
                         },
                         onBackspace = {
@@ -207,7 +226,14 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             return
         }
         if (s.composeText.isBlank()) { CipherUiState.setError("Enter text to encrypt"); return }
-        if (s.selectedRecipientIds.isEmpty()) { CipherUiState.setError("Add recipients via person icon"); return }
+        if (s.selectedRecipientIds.isEmpty()) {
+            if (recipientManager.listRecipients().isEmpty()) {
+                CipherUiState.setError("Add recipients via person icon")
+            } else {
+                CipherUiState.showRecipientPicker()
+            }
+            return
+        }
         if (s.selectedSigningKeyId != null && cachedPassphrase == null) {
             CipherUiState.requestPassphrase(PendingAction.ENCRYPT)
         } else {

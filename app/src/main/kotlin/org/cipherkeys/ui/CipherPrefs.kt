@@ -3,13 +3,26 @@ package org.cipherkeys.ui
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 object CipherPrefs {
     private const val PREFS = "cipherkeys_config"
+
     private const val KEY_HEIGHT = "key_height"
     private const val PANEL_LINES = "panel_lines"
+    private const val HAPTIC_ENABLED = "haptic_enabled"
+    private const val SOUND_ENABLED = "sound_enabled"
+    private const val SOUND_VOLUME = "sound_volume"
+    private const val POPUP_ENABLED = "popup_enabled"
+    private const val KEY_BG_SHADING = "key_bg_shading"
+    private const val SHIFT_LOCK_METHOD = "shift_lock_method"
+    private const val SYM_LOCK_METHOD = "sym_lock_method"
+    private const val SYM_AUTO_RETURN = "sym_auto_return"
+    private const val AUTO_CAPITALIZE = "auto_capitalize"
+
     private const val DEFAULT_KEY_HEIGHT = 42
     private const val DEFAULT_PANEL_LINES = 4
 
@@ -21,10 +34,46 @@ object CipherPrefs {
     var panelLines by mutableIntStateOf(DEFAULT_PANEL_LINES)
         private set
 
+    var hapticEnabled by mutableStateOf(true)
+        private set
+
+    var soundEnabled by mutableStateOf(false)
+        private set
+
+    var soundVolume by mutableFloatStateOf(0.5f)
+        private set
+
+    var popupEnabled by mutableStateOf(true)
+        private set
+
+    var keyBgShading by mutableStateOf(true)
+        private set
+
+    var shiftLockMethod by mutableStateOf("double-tap")
+        private set
+
+    var symLockMethod by mutableStateOf("double-tap")
+        private set
+
+    var symAutoReturn by mutableStateOf(false)
+        private set
+
+    var autoCapitalize by mutableStateOf(true)
+        private set
+
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         keyHeightDp = prefs!!.getInt(KEY_HEIGHT, DEFAULT_KEY_HEIGHT)
         panelLines = prefs!!.getInt(PANEL_LINES, DEFAULT_PANEL_LINES)
+        hapticEnabled = prefs!!.getBoolean(HAPTIC_ENABLED, true)
+        soundEnabled = prefs!!.getBoolean(SOUND_ENABLED, false)
+        soundVolume = prefs!!.getFloat(SOUND_VOLUME, 0.5f)
+        popupEnabled = prefs!!.getBoolean(POPUP_ENABLED, true)
+        keyBgShading = prefs!!.getBoolean(KEY_BG_SHADING, true)
+        shiftLockMethod = prefs!!.getString(SHIFT_LOCK_METHOD, "double-tap") ?: "double-tap"
+        symLockMethod = prefs!!.getString(SYM_LOCK_METHOD, "double-tap") ?: "double-tap"
+        symAutoReturn = prefs!!.getBoolean(SYM_AUTO_RETURN, false)
+        autoCapitalize = prefs!!.getBoolean(AUTO_CAPITALIZE, true)
     }
 
     fun updateKeyHeight(value: Int) {
@@ -37,5 +86,50 @@ object CipherPrefs {
         val v = value.coerceIn(2, 8)
         panelLines = v
         prefs?.edit()?.putInt(PANEL_LINES, v)?.apply()
+    }
+
+    fun updateHapticEnabled(v: Boolean) {
+        hapticEnabled = v
+        prefs?.edit()?.putBoolean(HAPTIC_ENABLED, v)?.apply()
+    }
+
+    fun updateSoundEnabled(v: Boolean) {
+        soundEnabled = v
+        prefs?.edit()?.putBoolean(SOUND_ENABLED, v)?.apply()
+    }
+
+    fun updateSoundVolume(v: Float) {
+        soundVolume = v.coerceIn(0f, 1f)
+        prefs?.edit()?.putFloat(SOUND_VOLUME, soundVolume)?.apply()
+    }
+
+    fun updatePopupEnabled(v: Boolean) {
+        popupEnabled = v
+        prefs?.edit()?.putBoolean(POPUP_ENABLED, v)?.apply()
+    }
+
+    fun updateKeyBgShading(v: Boolean) {
+        keyBgShading = v
+        prefs?.edit()?.putBoolean(KEY_BG_SHADING, v)?.apply()
+    }
+
+    fun updateShiftLockMethod(v: String) {
+        shiftLockMethod = v
+        prefs?.edit()?.putString(SHIFT_LOCK_METHOD, v)?.apply()
+    }
+
+    fun updateSymLockMethod(v: String) {
+        symLockMethod = v
+        prefs?.edit()?.putString(SYM_LOCK_METHOD, v)?.apply()
+    }
+
+    fun updateSymAutoReturn(v: Boolean) {
+        symAutoReturn = v
+        prefs?.edit()?.putBoolean(SYM_AUTO_RETURN, v)?.apply()
+    }
+
+    fun updateAutoCapitalize(v: Boolean) {
+        autoCapitalize = v
+        prefs?.edit()?.putBoolean(AUTO_CAPITALIZE, v)?.apply()
     }
 }
