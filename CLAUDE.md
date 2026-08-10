@@ -6,9 +6,9 @@
 3. Copy APK: `cp app/build/outputs/apk/debug/app-debug.apk /home/mleku/s/cipherkeys-releases/app-v<VERSION>.apk`
 
 ## Obtanium Release (cipherkeys-releases repo)
-1. Update `latest.json` with new version and APK URL:
+1. Update `latest.json` with new version and APK URL using array format:
    ```json
-   {"version":"<VERSION>","apkUrl":"https://git.smesh.lol/cipherkeys-releases/raw/app-v<VERSION>.apk"}
+   [{"version":"<VERSION>","url":"https://git.smesh.lol/cipherkeys-releases/raw/app-v<VERSION>.apk"}]
    ```
 2. Commit: `git add app-v<VERSION>.apk latest.json && git commit -m 'v<VERSION>: ...'`
 3. Tag: `git tag -f v<VERSION> HEAD`
