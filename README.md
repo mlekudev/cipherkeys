@@ -28,8 +28,6 @@ Android keyboard with PGP encryption.
 
 ## Releases
 
-| Version | Date |
-|---------|------|
 | Version | Date | Download |
 |---------|------|----------|
 | [v1.0.0](https://git.smesh.lol/cipherkeys-releases) | 2026-07-25 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.0.apk) |
@@ -45,6 +43,15 @@ Android keyboard with PGP encryption.
 | [v1.0.11](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.11.apk) |
 | [v1.0.12](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.12.apk) |
 | [v1.0.13](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.13.apk) |
+
+## Updating with Obtanium
+
+Use [Obtanium](https://github.com/ImranR98/Obtainium) to get automatic updates:
+
+- **Source type**: JSON
+- **URL**: `https://git.smesh.lol/cipherkeys-releases/raw/latest.json`
+
+Obtanium will check this URL for version updates and download the latest APK automatically.
 
 ## Build
 
