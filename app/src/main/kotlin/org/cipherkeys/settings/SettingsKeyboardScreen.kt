@@ -74,6 +74,24 @@ fun SettingsKeyboardScreen() {
         SettingToggle("Key background shading", "Show shaded key backgrounds", keyBg,
             { keyBg = it; CipherPrefs.updateKeyBgShading(it) })
 
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Key height: ${keyH}dp", style = MaterialTheme.typography.titleMedium)
+                Text("Adjust keyboard key size", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                Slider(
+                    value = keyH.toFloat(),
+                    onValueChange = { keyH = it.toInt(); CipherPrefs.updateKeyHeight(it.toInt()) },
+                    valueRange = 34f..60f,
+                    steps = 25,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+
         Spacer(Modifier.height(8.dp))
 
         LockMethodSelector("Shift lock method", shiftLock,
