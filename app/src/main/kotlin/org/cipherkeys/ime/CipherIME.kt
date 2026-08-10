@@ -206,7 +206,13 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                 CipherUiState.insertAtCursor(c)
                             } else {
                                 val ic = currentInputConnection
-                                if (ic != null && CipherPrefs.autoCapitalize) {
+                                val isPasswordField = currentInputEditorInfo?.inputType?.let { type ->
+                                    val v = type and android.text.InputType.TYPE_MASK_VARIATION
+                                    v == android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                                        v == android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
+                                        v == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                                } ?: false
+                                if (ic != null && CipherPrefs.autoCapitalize && !isPasswordField) {
                                     val prev = ic.getTextBeforeCursor(3, 0)
                                     val shouldCap = prev == null || prev.isEmpty() ||
                                         prev.trimEnd().endsWith(".") ||
