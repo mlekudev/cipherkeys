@@ -213,14 +213,19 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                         v == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
                                 } ?: false
                                 if (ic != null && CipherPrefs.autoCapitalize && !isPasswordField) {
-                                    val prev = ic.getTextBeforeCursor(3, 0)
-                                    val shouldCap = prev == null || prev.isEmpty() ||
-                                        prev.trimEnd().endsWith(".") ||
-                                        prev.trimEnd().endsWith("!") ||
-                                        prev.trimEnd().endsWith("?") ||
-                                        prev.trimEnd().endsWith(".\n") ||
-                                        prev.trimEnd().endsWith("!\n") ||
-                                        prev.trimEnd().endsWith("?\n")
+                                    val prev = ic.getTextBeforeCursor(3, 0)?.toString() ?: ""
+                                    val lastChar = prev.lastOrNull()
+                                    val precededByWs = prev.isEmpty() || lastChar == null ||
+                                        lastChar.isWhitespace()
+                                    val trimmed = prev.trimEnd()
+                                    val shouldCap = prev.isEmpty() || (precededByWs && (
+                                        trimmed.endsWith(".") ||
+                                        trimmed.endsWith("!") ||
+                                        trimmed.endsWith("?") ||
+                                        trimmed.endsWith(".\n") ||
+                                        trimmed.endsWith("!\n") ||
+                                        trimmed.endsWith("?\n")
+                                    ))
                                     val char = if (shouldCap && c.length == 1 && c[0].isLowerCase()) {
                                         c.uppercase()
                                     } else c
