@@ -213,7 +213,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                         v == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
                                 } ?: false
                                 if (ic != null && CipherPrefs.autoCapitalize && !isPasswordField) {
-                                    val prev = ic.getTextBeforeCursor(3, 0)?.toString() ?: ""
+                                    val prev = ic.getTextBeforeCursor(20, 0)?.toString() ?: ""
                                     val lastChar = prev.lastOrNull()
                                     val precededByWs = prev.isEmpty() || lastChar == null ||
                                         lastChar.isWhitespace()
