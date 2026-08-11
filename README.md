@@ -57,6 +57,7 @@ Use [Obtanium](https://github.com/ImranR98/Obtainium) to get automatic updates:
 - **URL**: `https://git.smesh.lol/cipherkeys`
 - **App Name**: `CipherKeys`
 - **Sort by Last Link Segment**: on
+- **Reverse Sort**: on
 
 Obtanium scrapes the latest APK link from the README.
 
