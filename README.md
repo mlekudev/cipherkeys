@@ -2,6 +2,8 @@
 
 Android keyboard with PGP encryption.
 
+**Latest release**: [cipherkeys v1.0.16](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v1.0.16.apk)
+
 ## Features
 
 - Full QWERTY keyboard with dark/light theme support
@@ -28,33 +30,35 @@ Android keyboard with PGP encryption.
 
 ## Releases
 
-| Version | Date | Download |
-|---------|------|----------|
-| [v1.0.0](https://git.smesh.lol/cipherkeys-releases) | 2026-07-25 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.0.apk) |
-| [v1.0.1](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.1.apk) |
-| [v1.0.2](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.2.apk) |
-| [v1.0.3](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.3.apk) |
-| [v1.0.4](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.4.apk) |
-| [v1.0.5](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.5.apk) |
-| [v1.0.6](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.6.apk) |
-| [v1.0.7](https://git.smesh.lol/cipherkeys-releases) | 2026-07-26 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.7.apk) |
-| [v1.0.8](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.8.apk) |
-| [v1.0.10](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.10.apk) |
-| [v1.0.11](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.11.apk) |
-| [v1.0.12](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.12.apk) |
-| [v1.0.13](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.13.apk) |
-| [v1.0.14](https://git.smesh.lol/cipherkeys-releases) | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.14.apk) |
-| [v1.0.15](https://git.smesh.lol/cipherkeys-releases) | 2026-08-11 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.15.apk) |
-| [v1.0.16](https://git.smesh.lol/cipherkeys-releases) | 2026-08-11 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v1.0.16.apk) |
+| Version | Date |
+|---------|------|
+| v1.0.0 | 2026-07-25 |
+| v1.0.1 | 2026-07-26 |
+| v1.0.2 | 2026-07-26 |
+| v1.0.3 | 2026-07-26 |
+| v1.0.4 | 2026-07-26 |
+| v1.0.5 | 2026-07-26 |
+| v1.0.6 | 2026-07-26 |
+| v1.0.7 | 2026-07-26 |
+| v1.0.8 | 2026-08-09 |
+| v1.0.10 | 2026-08-09 |
+| v1.0.11 | 2026-08-09 |
+| v1.0.12 | 2026-08-09 |
+| v1.0.13 | 2026-08-09 |
+| v1.0.14 | 2026-08-09 |
+| v1.0.15 | 2026-08-11 |
+| v1.0.16 | 2026-08-11 |
 
 ## Updating with Obtanium
 
 Use [Obtanium](https://github.com/ImranR98/Obtainium) to get automatic updates:
 
 - **Override Source**: HTML
-- **URL**: `https://git.smesh.lol/cipherkeys-releases/raw/releases.html`
+- **URL**: `https://git.smesh.lol/cipherkeys/raw/README.md`
+- **App Name**: `CipherKeys`
+- **Sort by Last Link Segment**: on
 
-Obtanium will scrape the release links from this page.
+Obtanium scrapes the latest APK link from the README.
 
 ## Build
 
