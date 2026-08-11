@@ -2,6 +2,8 @@
 
 Android keyboard with PGP encryption.
 
+After installing, enable in **Settings > System > Keyboard > On-screen keyboard > CipherKeys**.
+
 **Latest release**: [cipherkeys 00018](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v00018.apk)
 
 ## Features
