@@ -54,7 +54,7 @@ Android keyboard with PGP encryption.
 Use [Obtanium](https://github.com/ImranR98/Obtainium) to get automatic updates:
 
 - **Override Source**: HTML
-- **URL**: `https://git.smesh.lol/cipherkeys/raw/README.md`
+- **URL**: `https://git.smesh.lol/cipherkeys/raw/index.html`
 - **App Name**: `CipherKeys`
 - **Sort by Last Link Segment**: on
 

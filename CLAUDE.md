@@ -6,12 +6,13 @@
 3. Copy APK: `cp app/build/outputs/apk/debug/app-debug.apk /home/mleku/s/cipherkeys-releases/cipherkeys-v<VERSION>.apk`
 
 ## README Update (cipherkeys repo)
-1. Update the "Latest release" link at the top of `README.md` with new version:
-   ```markdown
-   **Latest release**: [cipherkeys v<VERSION>](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v<VERSION>.apk)
+1. Update the "Latest release" link at the top of `README.md` with new version
+2. Update `index.html` with new version link:
+   ```html
+   <li><a href="https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v<VERSION>.apk">CipherKeys v<VERSION></a></li>
    ```
-2. Add new version row to releases table (text only, no links)
-3. Commit and push: `git add README.md && git commit -m 'v<VERSION>: bump, update README' && git push`
+3. Add new version row to releases table (text only, no links)
+4. Commit and push: `git add README.md index.html && git commit -m 'v<VERSION>: bump' && git push`
 
 ## Obtanium Release (cipherkeys-releases repo)
 1. Copy APK: already done in version bump step
