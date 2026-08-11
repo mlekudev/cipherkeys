@@ -233,6 +233,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                 } else {
                                     currentInputConnection?.commitText(c, 1)
                                 }
+                                checkAutoShift()
                             }
                         },
                         onBackspace = {
@@ -488,4 +489,17 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) { super.onStartInputView(info, restarting) }
+
+    private fun checkAutoShift() {
+        if (!CipherPrefs.autoCapitalize) return
+        val ic = currentInputConnection ?: return
+        val prev = ic.getTextBeforeCursor(20, 0)?.toString() ?: return
+        val lastChar = prev.lastOrNull() ?: return
+        if (!lastChar.isWhitespace()) return
+        val trimmed = prev.trimEnd()
+        if (trimmed.endsWith(".") || trimmed.endsWith("!") || trimmed.endsWith("?") ||
+            trimmed.endsWith(".\n") || trimmed.endsWith("!\n") || trimmed.endsWith("?\n")) {
+            CipherUiState.triggerAutoShift()
+        }
+    }
 }

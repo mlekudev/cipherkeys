@@ -156,6 +156,9 @@ fun KeyboardView(
     val shiftReset = CipherUiState.state.shiftResetSerial
     LaunchedEffect(shiftReset) { shift = false; shiftLocked = false }
 
+    val autoShift = CipherUiState.state.autoShiftSerial
+    LaunchedEffect(autoShift) { if (!shiftLocked) shift = true }
+
     LaunchedEffect(backspaceRepeat) {
         if (backspaceRepeat) {
             while (true) { onBackspace(); delay(50) }

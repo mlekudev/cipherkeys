@@ -2,7 +2,7 @@
 
 Android keyboard with PGP encryption.
 
-**Latest release**: [cipherkeys v1.0.16](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v1.0.16.apk)
+**Latest release**: [cipherkeys v1.0.17](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v1.0.17.apk)
 
 ## Features
 
@@ -48,6 +48,7 @@ Android keyboard with PGP encryption.
 | v1.0.14 | 2026-08-09 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.14.apk) |
 | v1.0.15 | 2026-08-11 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/app-v1.0.15.apk) |
 | v1.0.16 | 2026-08-11 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v1.0.16.apk) |
+| v1.0.17 | 2026-08-11 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v1.0.17.apk) |
 
 ## Updating with Obtanium
 

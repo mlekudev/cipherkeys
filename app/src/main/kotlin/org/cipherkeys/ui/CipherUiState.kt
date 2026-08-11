@@ -27,6 +27,7 @@ data class CipherState(
     val infoMessage: String? = null,
     val infoIsWarning: Boolean = false,
     val shiftResetSerial: Long = 0L,
+    val autoShiftSerial: Long = 0L,
 )
 
 enum class PendingAction { ENCRYPT, DECRYPT, SIGN }
@@ -157,5 +158,9 @@ object CipherUiState {
 
     fun clearInfo() {
         state = state.copy(infoMessage = null, infoIsWarning = false)
+    }
+
+    fun triggerAutoShift() {
+        state = state.copy(autoShiftSerial = state.autoShiftSerial + 1)
     }
 }
