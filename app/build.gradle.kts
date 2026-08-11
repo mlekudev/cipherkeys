@@ -45,9 +45,21 @@ configure<ApplicationExtension> {
             isDebuggable = true
         }
         named("release") {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+    buildTypes.named("release") {
+        signingConfig = signingConfigs.getByName("release")
     }
 }
 
