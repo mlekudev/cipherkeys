@@ -28,6 +28,7 @@ data class CipherState(
     val infoIsWarning: Boolean = false,
     val shiftResetSerial: Long = 0L,
     val autoShiftSerial: Long = 0L,
+    val keyboardShiftOn: Boolean = false,
 )
 
 enum class PendingAction { ENCRYPT, DECRYPT, SIGN }
@@ -162,5 +163,9 @@ object CipherUiState {
 
     fun triggerAutoShift() {
         state = state.copy(autoShiftSerial = state.autoShiftSerial + 1)
+    }
+
+    fun setKeyboardShift(on: Boolean) {
+        state = state.copy(keyboardShiftOn = on)
     }
 }

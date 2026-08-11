@@ -157,7 +157,7 @@ fun KeyboardView(
     LaunchedEffect(shiftReset) { shift = false; shiftLocked = false }
 
     val autoShift = CipherUiState.state.autoShiftSerial
-    LaunchedEffect(autoShift) { if (!shiftLocked) shift = true }
+    LaunchedEffect(autoShift) { if (!shiftLocked) { shift = true; CipherUiState.setKeyboardShift(true) } }
 
     LaunchedEffect(backspaceRepeat) {
         if (backspaceRepeat) {
@@ -184,16 +184,18 @@ fun KeyboardView(
             "\u21E7" -> {
                 if (shiftLocked) { shiftLocked = false; shift = false }
                 else shift = !shift
+                CipherUiState.setKeyboardShift(shift)
             }
             "?123" -> {
                 if (symLocked) { symLocked = false; mode = KbMode.ALPHA }
                 else { mode = KbMode.SYM; shift = false; shiftLocked = false }
+                CipherUiState.setKeyboardShift(false)
             }
             "=\\<" -> mode = if (mode == KbMode.SYM) KbMode.SYM2 else KbMode.SYM
-            "ABC" -> { symLocked = false; mode = KbMode.ALPHA; shift = false; shiftLocked = false }
+            "ABC" -> { symLocked = false; mode = KbMode.ALPHA; shift = false; shiftLocked = false; CipherUiState.setKeyboardShift(false) }
             else -> {
                 onChar(key.label)
-                if (shift && !shiftLocked && mode == KbMode.ALPHA) shift = false
+                if (shift && !shiftLocked && mode == KbMode.ALPHA) { shift = false; CipherUiState.setKeyboardShift(false) }
                 if (!symLocked && CipherPrefs.symAutoReturn && mode != KbMode.ALPHA) mode = KbMode.ALPHA
             }
         }
@@ -201,7 +203,7 @@ fun KeyboardView(
 
     fun onLongPress(key: KbKey) {
         if (key.label == "\u21E7" && CipherPrefs.shiftLockMethod == "long-press") {
-            shiftLocked = true; shift = true; return
+            shiftLocked = true; shift = true; CipherUiState.setKeyboardShift(true); return
         }
         if (key.label == "?123" && CipherPrefs.symLockMethod == "long-press") {
             symLocked = true; mode = KbMode.SYM; return
@@ -211,7 +213,7 @@ fun KeyboardView(
 
     fun onDoubleTap(key: KbKey) {
         if (key.label == "\u21E7" && CipherPrefs.shiftLockMethod == "double-tap") {
-            shiftLocked = true; shift = true
+            shiftLocked = true; shift = true; CipherUiState.setKeyboardShift(true)
         }
         if (key.label == "?123" && CipherPrefs.symLockMethod == "double-tap") {
             symLocked = true; mode = KbMode.SYM

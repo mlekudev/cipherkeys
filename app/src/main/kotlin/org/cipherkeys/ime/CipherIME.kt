@@ -226,7 +226,8 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                         trimmed.endsWith("!\n") ||
                                         trimmed.endsWith("?\n")
                                     ))
-                                    val char = if (shouldCap && c.length == 1 && c[0].isLowerCase()) {
+                                    val kbShift = CipherUiState.state.keyboardShiftOn
+                                    val char = if (shouldCap && c.length == 1 && c[0].isLowerCase() && kbShift) {
                                         c.uppercase()
                                     } else c
                                     ic.commitText(char, 1)
