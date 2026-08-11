@@ -270,6 +270,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                 CipherUiState.insertAtCursor(" ")
                             } else {
                                 currentInputConnection?.commitText(" ", 1)
+                                checkAutoShift()
                             }
                         },
                         onEnterLongPress = {
