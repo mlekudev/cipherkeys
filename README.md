@@ -58,11 +58,10 @@ Use [Obtanium](https://github.com/ImranR98/Obtainium) to get automatic updates:
 - **Override Source**: HTML
 - **URL**: `https://git.smesh.lol/cipherkeys`
 - **App Name**: `CipherKeys`
-- **Sort by Last Link Segment**: on
-- **Reverse Sort**: on
 - **Version Extraction Regex**: `[0-9]+`
+- **Sort by Last Link Segment**: on
 
-Only the regex is mandatory - everything else is optional.
+Only the regex is mandatory.
 
 ## Build
 
