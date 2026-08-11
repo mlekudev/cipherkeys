@@ -60,9 +60,9 @@ Use [Obtanium](https://github.com/ImranR98/Obtainium) to get automatic updates:
 - **App Name**: `CipherKeys`
 - **Sort by Last Link Segment**: on
 - **Reverse Sort**: on
-- **Version Extraction**: `[0-9]+`
+- **Version Extraction Regex**: `[0-9]+`
 
-Obtanium scrapes the latest APK link from the README.
+Only the regex is mandatory - everything else is optional.
 
 ## Build
 
