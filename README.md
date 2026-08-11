@@ -51,10 +51,10 @@ Android keyboard with PGP encryption.
 
 Use [Obtanium](https://github.com/ImranR98/Obtainium) to get automatic updates:
 
-- **Source type**: JSON
-- **URL**: `https://git.smesh.lol/cipherkeys-releases/raw/latest.json`
+- **Override Source**: HTML
+- **URL**: `https://git.smesh.lol/cipherkeys-releases/raw/releases.html`
 
-Obtanium will check this URL for version updates and download the latest APK automatically.
+Obtanium will scrape the release links from this page.
 
 ## Build
 
