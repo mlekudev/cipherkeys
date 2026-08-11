@@ -2,7 +2,7 @@
 
 Android keyboard with PGP encryption.
 
-**Latest release**: [cipherkeys v1.0.18](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v1.0.18.apk)
+**Latest release**: [cipherkeys 00018](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v00018.apk)
 
 ## Features
 
@@ -60,6 +60,7 @@ Use [Obtanium](https://github.com/ImranR98/Obtainium) to get automatic updates:
 - **App Name**: `CipherKeys`
 - **Sort by Last Link Segment**: on
 - **Reverse Sort**: on
+- **Version Extraction**: `[0-9]+`
 
 Obtanium scrapes the latest APK link from the README.
 
