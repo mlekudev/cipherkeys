@@ -25,6 +25,6 @@
 
 ## Obtanium User Setup
 - **Override Source**: HTML
-- **URL**: `https://git.smesh.lol/cipherkeys/raw/README.md`
+- **URL**: `https://git.smesh.lol/cipherkeys`
 - **App Name**: `CipherKeys`
 - **Sort by Last Link Segment**: on
