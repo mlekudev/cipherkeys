@@ -1,5 +1,11 @@
-repository: https://github.com/mlekudev/cipherkeys-releases
+repository: https://github.com/mlekudev/cipherkeys
+release_source: https://github.com/mlekudev/cipherkeys-releases
+metadata_sources:
+  - github
 
 name: CipherKeys
-summary: Android keyboard with PGP encryption
+summary: PGP-encrypting Android keyboard
+description: |
+  CipherKeys is an Android keyboard with PGP encryption built in.
+  Encrypt and sign messages without leaving your app.
 license: Apache-2.0
