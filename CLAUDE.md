@@ -15,16 +15,13 @@ Zero-padded monotonic counter. Increment `projectVersionCode` and set `projectVe
 
 ## Obtanium Release (cipherkeys-releases repo)
 1. Copy APK: already done in version bump step
-2. Commit, tag, push:
+2. Commit, tag, push to git.smesh.lol:
    ```
    git add cipherkeys-v<VERSION>.apk && git commit -m 'v<VERSION>: ...'
    git tag -f v<VERSION> HEAD
    git push && git push --tags
    ```
+3. Create GitHub release: `gh release create v<VERSION> cipherkeys-v<VERSION>.apk -R mlekudev/cipherkeys-releases`
 
 ## Obtanium User Setup
-- **Override Source**: HTML
-- **URL**: `https://git.smesh.lol/cipherkeys`
-- **App Name**: `CipherKeys`
-- **Sort by Last Link Segment**: off
-- **Reverse Sort**: on
+- Add `https://github.com/mlekudev/cipherkeys-releases` in Obtanium.

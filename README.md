@@ -56,15 +56,7 @@ After installing, enable in **Settings > System > Keyboard > On-screen keyboard 
 
 ## Updating with Obtanium
 
-Use [Obtanium](https://github.com/ImranR98/Obtainium) to get automatic updates:
-
-- **Override Source**: HTML
-- **URL**: `https://git.smesh.lol/cipherkeys`
-- **App Name**: `CipherKeys`
-- **Version Extraction Regex**: `[0-9]+`
-- **Sort by Last Link Segment**: on
-
-Only the regex is mandatory.
+Add `https://github.com/mlekudev/cipherkeys-releases` in Obtanium. Zero configuration - autodetects via GitHub releases.
 
 ## Build
 
