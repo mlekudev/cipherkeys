@@ -1,0 +1,6 @@
+repository: https://git.smesh.lol/cipherkeys
+release_source: https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v00019.apk
+
+name: CipherKeys
+summary: Android keyboard with PGP encryption
+license: Apache-2.0
