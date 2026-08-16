@@ -40,6 +40,7 @@ fun SettingsKeyboardScreen() {
     var symLock by remember { mutableStateOf(CipherPrefs.symLockMethod) }
     var symReturn by remember { mutableStateOf(CipherPrefs.symAutoReturn) }
     var autoCap by remember { mutableStateOf(CipherPrefs.autoCapitalize) }
+    var longPress by remember { mutableIntStateOf(CipherPrefs.longPressMs) }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -93,6 +94,24 @@ fun SettingsKeyboardScreen() {
         }
 
         Spacer(Modifier.height(8.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Long-press delay: ${longPress}ms", style = MaterialTheme.typography.titleMedium)
+                Text("Delay before long-press actions trigger", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                Slider(
+                    value = longPress.toFloat(),
+                    onValueChange = { longPress = it.toInt(); CipherPrefs.updateLongPressMs(it.toInt()) },
+                    valueRange = 150f..400f,
+                    steps = 49,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
 
         LockMethodSelector("Shift lock method", shiftLock,
             { shiftLock = it; CipherPrefs.updateShiftLockMethod(it) })

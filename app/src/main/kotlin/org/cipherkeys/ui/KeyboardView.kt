@@ -5,7 +5,7 @@ import android.media.SoundPool
 import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -163,6 +163,15 @@ fun KeyboardView(
 
     val singleShiftClear = CipherUiState.state.singleShiftClearSerial
     LaunchedEffect(singleShiftClear) { if (!shiftLocked) { shift = false; CipherUiState.setKeyboardShift(false) } }
+
+    val kbReset = CipherUiState.state.kbResetSerial
+    LaunchedEffect(kbReset) {
+        mode = KbMode.ALPHA
+        shiftLocked = false
+        symLocked = false
+        shift = CipherUiState.state.initialShiftOn
+        CipherUiState.setKeyboardShift(shift)
+    }
 
     LaunchedEffect(backspaceRepeat) {
         if (backspaceRepeat) {
@@ -363,7 +372,7 @@ private fun RowScope.KeyboardKey(
                             awaitPointerEventScope {
                                 while (true) {
                                     val down = awaitFirstDown(requireUnconsumed = false)
-                                    val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                                    val longPressTimeout = CipherPrefs.longPressMs
                                     var longPressTriggered = false
                                     val longPressJob = launch {
                                         delay(longPressTimeout.toLong())
@@ -388,23 +397,36 @@ private fun RowScope.KeyboardKey(
                             }
                         }
                     } else {
-                        detectTapGestures(
-                            onTap = {
-                                if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                                if (popoverEnabled) showPopover(bumpPopoverSerial(), key.label)
-                                onTap()
-                            },
-                            onLongPress = onLongPress?.let { lp ->
-                                {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    pressed = true
-                                    val longLabel = key.longPress ?: key.label
-                                    if (CipherPrefs.popupEnabled) showPopover(bumpPopoverSerial(), longLabel)
-                                    lp()
-                                    scope.launch { delay(100); pressed = false }
+                        coroutineScope {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    var longPressTriggered = false
+                                    val longPressJob = onLongPress?.let { lp ->
+                                        launch {
+                                            delay(CipherPrefs.longPressMs.toLong())
+                                            longPressTriggered = true
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            pressed = true
+                                            val longLabel = key.longPress ?: key.label
+                                            if (CipherPrefs.popupEnabled) showPopover(bumpPopoverSerial(), longLabel)
+                                            lp()
+                                            scope.launch { delay(100); pressed = false }
+                                        }
+                                    }
+                                    val up = waitForUpOrCancellation()
+                                    longPressJob?.cancel()
+                                    if (up != null && !longPressTriggered) {
+                                        val isTap = (up.position - down.position).getDistance() <= viewConfiguration.touchSlop
+                                        if (isTap) {
+                                            if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
+                                            if (popoverEnabled) showPopover(bumpPopoverSerial(), key.label)
+                                            onTap()
+                                        }
+                                    }
                                 }
-                            },
-                        )
+                            }
+                        }
                     }
                 },
             contentAlignment = Alignment.Center,

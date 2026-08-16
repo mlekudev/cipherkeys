@@ -27,6 +27,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,8 +57,8 @@ fun KeyListScreen(
     var showDeleteDialog by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(keys) {
-        if (CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId == null && keys.isNotEmpty()) {
-            CipherPrefs.updateEncryptToSelfKeyId(keys.first().keyId)
+        if (CipherPrefs.defaultKeyId == null && keys.isNotEmpty()) {
+            CipherPrefs.updateDefaultKeyId(keys.first().keyId)
         }
     }
 
@@ -68,6 +69,10 @@ fun KeyListScreen(
             message = "Delete this key? This cannot be undone.",
             onConfirm = {
                 keyManager.deleteKey(showDeleteDialog!!)
+                if (CipherPrefs.defaultKeyId == showDeleteDialog) {
+                    val remaining = keyManager.listKeys()
+                    CipherPrefs.updateDefaultKeyId(remaining.firstOrNull()?.keyId)
+                }
                 showDeleteDialog = null
                 refresh()
             },
@@ -129,41 +134,17 @@ fun KeyListScreen(
                             checked = CipherPrefs.encryptToSelf,
                             onCheckedChange = { v ->
                                 CipherPrefs.updateEncryptToSelf(v)
-                                if (v && CipherPrefs.encryptToSelfKeyId == null && keys.isNotEmpty()) {
-                                    CipherPrefs.updateEncryptToSelfKeyId(keys.first().keyId)
+                                if (v && CipherPrefs.defaultKeyId == null && keys.isNotEmpty()) {
+                                    CipherPrefs.updateDefaultKeyId(keys.first().keyId)
                                 }
                             },
                         )
                     }
-                    if (CipherPrefs.encryptToSelf) {
-                        keys.forEach { key ->
-                            val isSelected = CipherPrefs.encryptToSelfKeyId == key.keyId
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        key.userId.split("<").firstOrNull()?.trim() ?: key.userId,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                    Text(
-                                        "0x${key.keyId.toString(16).uppercase()}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                Switch(
-                                    checked = isSelected,
-                                    onCheckedChange = {
-                                        CipherPrefs.updateEncryptToSelfKeyId(
-                                            if (isSelected) null else key.keyId
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                    }
+                    Text(
+                        "Uses the default key selected by radio button below",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -171,6 +152,8 @@ fun KeyListScreen(
         items(keys) { key ->
             KeyCard(
                 keyInfo = key,
+                isDefault = CipherPrefs.defaultKeyId == key.keyId,
+                onSetDefault = { CipherPrefs.updateDefaultKeyId(key.keyId) },
                 onCopyPublicKey = {
                     try {
                         val pub = keyManager.exportPublicKey(key.keyId, "")
@@ -200,6 +183,8 @@ fun KeyListScreen(
 @Composable
 fun KeyCard(
     keyInfo: KeyInfo,
+    isDefault: Boolean,
+    onSetDefault: () -> Unit,
     onCopyPublicKey: () -> Unit,
     onCopySecretKey: () -> Unit,
     onDelete: () -> Unit,
@@ -208,12 +193,26 @@ fun KeyCard(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
     ) {
         Column(Modifier.padding(12.dp)) {
-            Text(keyInfo.userId, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                "ID: ${keyInfo.keyId.toString(16)}  ${keyInfo.algorithm}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(
+                    selected = isDefault,
+                    onClick = onSetDefault,
+                )
+                Column(Modifier.weight(1f)) {
+                    Text(keyInfo.userId, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "ID: ${keyInfo.keyId.toString(16)}  ${keyInfo.algorithm}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        if (isDefault) "Default signing/encryption key" else "Tap radio to make default",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isDefault) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Spacer(Modifier.height(8.dp))
             Row {
                 TextButton("Copy Public", onClick = onCopyPublicKey)

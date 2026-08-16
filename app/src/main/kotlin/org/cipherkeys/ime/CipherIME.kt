@@ -91,8 +91,16 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             if (s.isActive && s.selectedRecipientIds.isNotEmpty() && s.composeText.isNotBlank()) {
                                 encryptAndSend(cachedPassphrase)
                             } else if (s.isActive && s.selectedRecipientIds.isEmpty() && s.composeText.isNotBlank()) {
-                                if (CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId != null) {
+                                if (s.selectedSigningKeyId != null) {
+                                    if (cachedPassphrase == null) {
+                                        CipherUiState.requestPassphrase(PendingAction.SIGN)
+                                    } else {
+                                        doSign(cachedPassphrase!!)
+                                    }
+                                } else if (CipherPrefs.encryptToSelf && CipherPrefs.defaultKeyId != null) {
                                     encryptAndSend(cachedPassphrase)
+                                } else if (keyManager.listKeys().isEmpty()) {
+                                    CipherUiState.setError("Create or import a PGP key to encrypt or sign")
                                 } else if (recipientManager.listRecipients().isEmpty()) {
                                     CipherUiState.setError("Add recipients via person icon")
                                 } else {
@@ -110,14 +118,29 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             val s = CipherUiState.state
                             if (s.composeText.isBlank()) { CipherUiState.setError("Enter text to sign"); return@CipherPanel }
                             val keys = keyManager.listKeys()
-                            if (keys.isEmpty()) { CipherUiState.setError("No keys stored"); return@CipherPanel }
+                            if (keys.isEmpty()) { CipherUiState.setError("Create or import a PGP key to sign with"); return@CipherPanel }
                             if (s.selectedSigningKeyId == null) {
-                                CipherUiState.showSignerPicker()
+                                val def = CipherPrefs.defaultKeyId
+                                if (def != null && keys.any { it.keyId == def }) {
+                                    CipherUiState.setSigningKey(def)
+                                    if (cachedPassphrase == null) {
+                                        CipherUiState.requestPassphrase(PendingAction.SIGN)
+                                    } else {
+                                        doSign(cachedPassphrase!!)
+                                    }
+                                } else {
+                                    CipherUiState.showSignerPicker()
+                                }
                             } else if (cachedPassphrase == null) {
                                 CipherUiState.requestPassphrase(PendingAction.SIGN)
                             } else {
                                 doSign(cachedPassphrase!!)
                             }
+                        },
+                        onSignLongPress = {
+                            CipherUiState.cancelBackspaceRepeat()
+                            CipherUiState.setSigningKey(null)
+                            CipherUiState.showSignerPicker()
                         },
                         onCopy = {
                             CipherUiState.cancelBackspaceRepeat()
@@ -206,12 +229,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                 CipherUiState.insertAtCursor(c)
                             } else {
                                 val ic = currentInputConnection
-                                val isPasswordField = currentInputEditorInfo?.inputType?.let { type ->
-                                    val v = type and android.text.InputType.TYPE_MASK_VARIATION
-                                    v == android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD ||
-                                        v == android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
-                                        v == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-                                } ?: false
+                                val isPasswordField = isPasswordInput(currentInputEditorInfo)
                                 if (ic != null && CipherPrefs.autoCapitalize && !isPasswordField) {
                                     val prev = ic.getTextBeforeCursor(20, 0)?.toString() ?: ""
                                     val lastChar = prev.lastOrNull()
@@ -281,8 +299,16 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                             if (s.isActive && s.composeText.isNotBlank()) {
                                 if (s.selectedRecipientIds.isNotEmpty()) {
                                     encryptAndSend(cachedPassphrase)
-                                } else if (CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId != null) {
+                                } else if (s.selectedSigningKeyId != null) {
+                                    if (cachedPassphrase == null) {
+                                        CipherUiState.requestPassphrase(PendingAction.SIGN)
+                                    } else {
+                                        doSign(cachedPassphrase!!)
+                                    }
+                                } else if (CipherPrefs.encryptToSelf && CipherPrefs.defaultKeyId != null) {
                                     encryptAndSend(cachedPassphrase)
+                                } else if (keyManager.listKeys().isEmpty()) {
+                                    CipherUiState.setError("Create or import a PGP key to encrypt or sign")
                                 } else if (recipientManager.listRecipients().isEmpty()) {
                                     CipherUiState.setError("Add recipients via person icon")
                                 } else {
@@ -329,7 +355,10 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             return
         }
         if (s.composeText.isBlank()) { CipherUiState.setError("Enter text to encrypt"); return }
-        if (s.selectedRecipientIds.isEmpty() && !(CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId != null)) {
+        if (keyManager.listKeys().isEmpty()) {
+            CipherUiState.setError("Create or import a PGP key to encrypt"); return
+        }
+        if (s.selectedRecipientIds.isEmpty()) {
             if (recipientManager.listRecipients().isEmpty()) {
                 CipherUiState.setError("Add recipients via person icon")
             } else {
@@ -439,7 +468,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         cryptoExecutor.execute {
             try {
                 val signKey = s.selectedSigningKeyId?.let { keyManager.getSecretKeyRing(it) }
-                if (signKey == null) { CipherUiState.setError("No signing key selected"); return@execute }
+                if (signKey == null) { CipherUiState.setError("No signing key - create or import a PGP key to sign with"); return@execute }
                 val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
                 val expirySecs = if (s.signExpiryPast) 1L else if (s.signExpiryDays > 0) s.signExpiryDays * 86400L else 0L
                 val r = pgpEngine.sign(msg, signKey, pw, expirySecs, s.signExpiryPast)
@@ -470,9 +499,9 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
 
     private fun getEncryptRecipients(s: org.cipherkeys.ui.CipherState): List<org.bouncycastle.openpgp.PGPPublicKeyRing> {
         val recips = s.selectedRecipientIds.mapNotNull { recipientManager.getRecipientPublicKey(it) }.toMutableList()
-        Log.d("CipherIME", "getEncryptRecipients: selectedRids=${s.selectedRecipientIds}, encryptToSelf=${CipherPrefs.encryptToSelf}, selfKeyId=${CipherPrefs.encryptToSelfKeyId}")
-        if (CipherPrefs.encryptToSelf && CipherPrefs.encryptToSelfKeyId != null) {
-            val selfKeyId = CipherPrefs.encryptToSelfKeyId!!
+        Log.d("CipherIME", "getEncryptRecipients: selectedRids=${s.selectedRecipientIds}, encryptToSelf=${CipherPrefs.encryptToSelf}, selfKeyId=${CipherPrefs.defaultKeyId}")
+        if (CipherPrefs.encryptToSelf && CipherPrefs.defaultKeyId != null) {
+            val selfKeyId = CipherPrefs.defaultKeyId!!
             val selfKey = keyManager.listKeys().find { it.keyId == selfKeyId }
             Log.d("CipherIME", "getEncryptRecipients: selfKey found=${selfKey != null}")
             if (selfKey != null) {
@@ -491,7 +520,22 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         return recips
     }
 
-    override fun onStartInputView(info: EditorInfo?, restarting: Boolean) { super.onStartInputView(info, restarting) }
+    override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
+        super.onStartInputView(info, restarting)
+        if (!restarting && CipherUiState.state.pendingAction == null) {
+            CipherUiState.resetKeyboardForInput(isPasswordInput(info))
+        }
+    }
+
+    private fun isPasswordInput(editorInfo: EditorInfo?): Boolean {
+        val type = editorInfo?.inputType ?: return false
+        val variation = type and android.text.InputType.TYPE_MASK_VARIATION
+        return variation == android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+            variation == android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
+            variation == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+            ((type and android.text.InputType.TYPE_MASK_CLASS) == android.text.InputType.TYPE_CLASS_NUMBER &&
+                variation == android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD)
+    }
 
     private var lastSelStart = -1
     private var lastSelEnd = -1

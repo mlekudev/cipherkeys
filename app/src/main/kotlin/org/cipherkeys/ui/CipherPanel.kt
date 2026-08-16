@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,6 +58,7 @@ fun CipherPanel(
     onDecrypt: () -> Unit,
     onSend: () -> Unit,
     onSign: () -> Unit,
+    onSignLongPress: () -> Unit = {},
     onCopy: () -> Unit,
     onPaste: () -> Unit,
     onClear: () -> Unit,
@@ -105,7 +107,17 @@ fun CipherPanel(
                     IconButton(onClick = onDecrypt, enabled = enabled && state.composeText.isNotEmpty(), modifier = Modifier.size(36.dp)) {
                         Icon(Icons.Default.LockOpen, "Decrypt", tint = tint, modifier = Modifier.size(22.dp))
                     }
-                    IconButton(onClick = onSign, enabled = enabled && state.composeText.isNotEmpty() && !needsPassphrase, modifier = Modifier.size(36.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(50))
+                            .combinedClickable(
+                                enabled = enabled && state.composeText.isNotEmpty() && !needsPassphrase,
+                                onClick = onSign,
+                                onLongClick = onSignLongPress,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Icon(Icons.Default.Create, "Sign",
                             tint = if (needsPassphrase) dimFg.copy(alpha = 0.15f) else tint,
                             modifier = Modifier.size(22.dp))

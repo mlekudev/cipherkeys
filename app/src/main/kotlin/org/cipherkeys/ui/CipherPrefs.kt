@@ -22,12 +22,14 @@ object CipherPrefs {
     private const val SYM_LOCK_METHOD = "sym_lock_method"
     private const val SYM_AUTO_RETURN = "sym_auto_return"
     private const val AUTO_CAPITALIZE = "auto_capitalize"
+    private const val LONG_PRESS_MS = "long_press_ms"
     private const val DEV_MODE = "dev_mode"
     private const val ENCRYPT_TO_SELF = "encrypt_to_self"
-    private const val ENCRYPT_TO_SELF_KEY = "encrypt_to_self_key"
+    private const val DEFAULT_KEY = "default_key"
 
     private const val DEFAULT_KEY_HEIGHT = 42
     private const val DEFAULT_PANEL_LINES = 4
+    private const val DEFAULT_LONG_PRESS_MS = 400
 
     private var prefs: SharedPreferences? = null
 
@@ -64,13 +66,16 @@ object CipherPrefs {
     var autoCapitalize by mutableStateOf(true)
         private set
 
+    var longPressMs by mutableIntStateOf(DEFAULT_LONG_PRESS_MS)
+        private set
+
     var devMode by mutableStateOf(false)
         private set
 
     var encryptToSelf by mutableStateOf(false)
         private set
 
-    var encryptToSelfKeyId by mutableStateOf<Long?>(null)
+    var defaultKeyId by mutableStateOf<Long?>(null)
         private set
 
     fun init(context: Context) {
@@ -86,10 +91,11 @@ object CipherPrefs {
         symLockMethod = prefs!!.getString(SYM_LOCK_METHOD, "double-tap") ?: "double-tap"
         symAutoReturn = prefs!!.getBoolean(SYM_AUTO_RETURN, false)
         autoCapitalize = prefs!!.getBoolean(AUTO_CAPITALIZE, true)
+        longPressMs = prefs!!.getInt(LONG_PRESS_MS, DEFAULT_LONG_PRESS_MS)
         devMode = prefs!!.getBoolean(DEV_MODE, false)
         encryptToSelf = prefs!!.getBoolean(ENCRYPT_TO_SELF, false)
-        val selfKeyId = prefs!!.getLong(ENCRYPT_TO_SELF_KEY, -1L)
-        encryptToSelfKeyId = if (selfKeyId >= 0) selfKeyId else null
+        val defaultId = prefs!!.getLong(DEFAULT_KEY, -1L)
+        defaultKeyId = if (defaultId >= 0) defaultId else null
     }
 
     fun updateKeyHeight(value: Int) {
@@ -149,6 +155,12 @@ object CipherPrefs {
         prefs?.edit()?.putBoolean(AUTO_CAPITALIZE, v)?.apply()
     }
 
+    fun updateLongPressMs(v: Int) {
+        val clamped = v.coerceIn(150, 400)
+        longPressMs = clamped
+        prefs?.edit()?.putInt(LONG_PRESS_MS, clamped)?.apply()
+    }
+
     fun updateDevMode(v: Boolean) {
         devMode = v
         prefs?.edit()?.putBoolean(DEV_MODE, v)?.apply()
@@ -159,8 +171,8 @@ object CipherPrefs {
         prefs?.edit()?.putBoolean(ENCRYPT_TO_SELF, v)?.apply()
     }
 
-    fun updateEncryptToSelfKeyId(id: Long?) {
-        encryptToSelfKeyId = id
-        prefs?.edit()?.putLong(ENCRYPT_TO_SELF_KEY, id ?: -1L)?.apply()
+    fun updateDefaultKeyId(id: Long?) {
+        defaultKeyId = id
+        prefs?.edit()?.putLong(DEFAULT_KEY, id ?: -1L)?.apply()
     }
 }
