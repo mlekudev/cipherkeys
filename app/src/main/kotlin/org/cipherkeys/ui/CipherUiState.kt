@@ -29,6 +29,7 @@ data class CipherState(
     val shiftResetSerial: Long = 0L,
     val autoShiftSerial: Long = 0L,
     val keyboardShiftOn: Boolean = false,
+    val singleShiftClearSerial: Long = 0L,
 )
 
 enum class PendingAction { ENCRYPT, DECRYPT, SIGN }
@@ -167,5 +168,9 @@ object CipherUiState {
 
     fun setKeyboardShift(on: Boolean) {
         state = state.copy(keyboardShiftOn = on)
+    }
+
+    fun clearAutoShift() {
+        state = state.copy(keyboardShiftOn = false, singleShiftClearSerial = state.singleShiftClearSerial + 1)
     }
 }

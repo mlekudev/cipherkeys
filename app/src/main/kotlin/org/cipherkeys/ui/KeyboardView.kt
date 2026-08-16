@@ -149,15 +149,20 @@ fun KeyboardView(
     var symLocked by remember { mutableStateOf(false) }
     var backspaceRepeat by remember { mutableStateOf(false) }
     var popoverSerial by remember { mutableStateOf(0L) }
+    var shiftLastTap by remember { mutableStateOf(0L) }
+    var symLastTap by remember { mutableStateOf(0L) }
 
     val kill = CipherUiState.state.backspaceKill
     LaunchedEffect(kill) { backspaceRepeat = false }
 
     val shiftReset = CipherUiState.state.shiftResetSerial
-    LaunchedEffect(shiftReset) { shift = false; shiftLocked = false }
+    LaunchedEffect(shiftReset) { shift = false; shiftLocked = false; CipherUiState.setKeyboardShift(false) }
 
     val autoShift = CipherUiState.state.autoShiftSerial
     LaunchedEffect(autoShift) { if (!shiftLocked) { shift = true; CipherUiState.setKeyboardShift(true) } }
+
+    val singleShiftClear = CipherUiState.state.singleShiftClearSerial
+    LaunchedEffect(singleShiftClear) { if (!shiftLocked) { shift = false; CipherUiState.setKeyboardShift(false) } }
 
     LaunchedEffect(backspaceRepeat) {
         if (backspaceRepeat) {
@@ -182,17 +187,47 @@ fun KeyboardView(
             "\u21B5" -> onEnter()
             " " -> onSpace()
             "\u21E7" -> {
-                if (shiftLocked) { shiftLocked = false; shift = false }
-                else shift = !shift
+                if (shiftLocked) {
+                    shiftLocked = false; shift = false
+                    shiftLastTap = 0
+                } else {
+                    val now = System.currentTimeMillis()
+                    val dt = now - shiftLastTap
+                    shiftLastTap = now
+                    if (CipherPrefs.shiftLockMethod == "double-tap" && dt < 300) {
+                        shiftLocked = true; shift = true
+                    } else {
+                        shift = !shift
+                    }
+                }
                 CipherUiState.setKeyboardShift(shift)
             }
             "?123" -> {
-                if (symLocked) { symLocked = false; mode = KbMode.ALPHA }
-                else { mode = KbMode.SYM; shift = false; shiftLocked = false }
+                if (symLocked) {
+                    symLocked = false; mode = KbMode.ALPHA
+                    symLastTap = 0
+                } else {
+                    symLastTap = System.currentTimeMillis()
+                    mode = KbMode.SYM; shift = false; shiftLocked = false
+                }
                 CipherUiState.setKeyboardShift(false)
             }
             "=\\<" -> mode = if (mode == KbMode.SYM) KbMode.SYM2 else KbMode.SYM
-            "ABC" -> { symLocked = false; mode = KbMode.ALPHA; shift = false; shiftLocked = false; CipherUiState.setKeyboardShift(false) }
+            "ABC" -> {
+                if (symLocked) {
+                    symLocked = false; mode = KbMode.ALPHA
+                    symLastTap = 0
+                } else {
+                    val dt = System.currentTimeMillis() - symLastTap
+                    if (CipherPrefs.symLockMethod == "double-tap" && dt < 300) {
+                        symLocked = true; mode = KbMode.SYM
+                    } else {
+                        mode = KbMode.ALPHA; shift = false; shiftLocked = false
+                    }
+                    symLastTap = 0
+                }
+                CipherUiState.setKeyboardShift(false)
+            }
             else -> {
                 onChar(key.label)
                 if (shift && !shiftLocked && mode == KbMode.ALPHA) { shift = false; CipherUiState.setKeyboardShift(false) }
@@ -211,19 +246,8 @@ fun KeyboardView(
         key.longPress?.let { onChar(it) }
     }
 
-    fun onDoubleTap(key: KbKey) {
-        if (key.label == "\u21E7" && CipherPrefs.shiftLockMethod == "double-tap") {
-            shiftLocked = true; shift = true; CipherUiState.setKeyboardShift(true)
-        }
-        if (key.label == "?123" && CipherPrefs.symLockMethod == "double-tap") {
-            symLocked = true; mode = KbMode.SYM
-        }
-    }
-
     val shiftDoubleTap = CipherPrefs.shiftLockMethod == "double-tap"
     val symDoubleTap = CipherPrefs.symLockMethod == "double-tap"
-    val shiftNeedDoubleTap = shiftDoubleTap || CipherPrefs.shiftLockMethod == "off" && shiftLocked
-    val symNeedDoubleTap = symDoubleTap || CipherPrefs.symLockMethod == "off" && symLocked
 
     Column(
         modifier = modifier.fillMaxWidth().background(kbBg).padding(horizontal = 3.dp, vertical = 3.dp),
@@ -249,9 +273,6 @@ fun KeyboardView(
                     }
                     val displayKey = if (showLockHint && key.label == "\u21B5")
                         key.copy(hint = "\uD83D\uDD12") else key
-                    val useDoubleTap =
-                        (key.label == "\u21E7" && shiftNeedDoubleTap) ||
-                            (key.label == "?123" && symNeedDoubleTap)
                     KeyboardKey(
                         displayKey, w, bg, keyFg, hintFg, fs,
                         active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")) || (mode == KbMode.SYM2 && key.label == "=\\<"),
@@ -263,18 +284,13 @@ fun KeyboardView(
                             playClick()
                             onKey(key)
                         },
-                        onDoubleTap = if (useDoubleTap) {
-                            { onDoubleTap(key) }
-                        } else null,
-                        onLongPress = if (useDoubleTap) null else {
-                            {
-                                if (key.label == "\u232B") {
-                                    backspaceRepeat = true
-                                } else if (key.label == "\u21B5") {
-                                    onEnterLongPress()
-                                } else {
-                                    onLongPress(key)
-                                }
+                        onLongPress = {
+                            if (key.label == "\u232B") {
+                                backspaceRepeat = true
+                            } else if (key.label == "\u21B5") {
+                                onEnterLongPress()
+                            } else {
+                                onLongPress(key)
                             }
                         },
                         onRelease = {
@@ -294,7 +310,6 @@ private fun RowScope.KeyboardKey(
     popoverSerial: Long = 0L,
     bumpPopoverSerial: () -> Long = { 0L },
     onTap: () -> Unit,
-    onDoubleTap: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
     onRelease: () -> Unit = {},
 ) {
@@ -372,21 +387,6 @@ private fun RowScope.KeyboardKey(
                                 }
                             }
                         }
-                    } else if (onDoubleTap != null) {
-                        detectTapGestures(
-                            onTap = {
-                                if (!active) { scope.launch { pressed = true; delay(80); pressed = false } }
-                                onTap()
-                            },
-                            onDoubleTap = {
-                                if (CipherPrefs.hapticEnabled) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                }
-                                pressed = true
-                                onDoubleTap()
-                                scope.launch { delay(100); pressed = false }
-                            },
-                        )
                     } else {
                         detectTapGestures(
                             onTap = {

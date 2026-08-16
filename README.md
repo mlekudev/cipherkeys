@@ -4,7 +4,7 @@ Android keyboard with PGP encryption.
 
 After installing, enable in **Settings > System > Keyboard > On-screen keyboard > CipherKeys**.
 
-**Latest release**: [cipherkeys 00020](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00020/cipherkeys-v00020.apk)
+**Latest release**: [cipherkeys 00022](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00022/cipherkeys-v00022.apk)
 
 ## Features
 
@@ -54,6 +54,8 @@ After installing, enable in **Settings > System > Keyboard > On-screen keyboard 
 | v1.0.18 | 2026-08-11 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v1.0.18.apk) |
 | 00019 | 2026-08-11 | [APK](https://git.smesh.lol/cipherkeys-releases/raw/cipherkeys-v00019.apk) |
 | 00020 | 2026-08-11 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00020/cipherkeys-v00020.apk) |
+| 00021 | 2026-08-16 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00021/cipherkeys-v00021.apk) |
+| 00022 | 2026-08-16 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00022/cipherkeys-v00022.apk) |
 
 ## Updating with Obtanium
 

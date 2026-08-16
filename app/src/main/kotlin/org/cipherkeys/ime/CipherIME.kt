@@ -264,6 +264,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                 }
                             } else {
                                 currentInputConnection?.commitText("\n", 1)
+                                CipherUiState.triggerAutoShift()
                             }
                         },
                         onSpace = {
@@ -491,6 +492,21 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) { super.onStartInputView(info, restarting) }
+
+    private var lastSelStart = -1
+    private var lastSelEnd = -1
+
+    override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        if (lastSelStart != -1 && (newSelStart != lastSelStart || newSelEnd != lastSelEnd)) {
+            val jump = kotlin.math.abs(newSelStart - lastSelStart) > 1
+            if (jump && CipherUiState.state.keyboardShiftOn) {
+                CipherUiState.clearAutoShift()
+            }
+        }
+        lastSelStart = newSelStart
+        lastSelEnd = newSelEnd
+    }
 
     private fun checkAutoShift() {
         if (!CipherPrefs.autoCapitalize) return
