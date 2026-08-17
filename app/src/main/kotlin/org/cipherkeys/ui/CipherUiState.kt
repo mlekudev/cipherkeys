@@ -52,6 +52,10 @@ object CipherUiState {
         if (current.contains(id)) current.remove(id) else current.add(id)
         state = state.copy(selectedRecipientIds = current)
     }
+
+    fun clearRecipients() {
+        state = state.copy(selectedRecipientIds = emptySet())
+    }
     fun setLoading(loading: Boolean) { state = state.copy(isLoading = loading) }
     fun setError(msg: String?) { state = state.copy(errorMessage = msg, isLoading = false) }
     fun clearError() { state = state.copy(errorMessage = null) }

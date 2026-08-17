@@ -418,6 +418,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             if (recipientManager.listRecipients().isEmpty()) {
                 CipherUiState.setError("Add recipients via person icon")
             } else {
+                CipherUiState.clearRecipients()
                 CipherUiState.showRecipientPicker()
             }
             return
@@ -502,6 +503,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             if (recipientManager.listRecipients().isEmpty()) {
                 CipherUiState.setError("Add recipients via person icon")
             } else {
+                CipherUiState.clearRecipients()
                 CipherUiState.showRecipientPicker(sendAfter = true)
             }
             return
