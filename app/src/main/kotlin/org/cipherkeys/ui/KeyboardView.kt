@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +61,7 @@ data class KbKey(
     val longPress: String? = null,
 )
 
-private enum class KbMode { ALPHA, SYM, SYM2 }
+private enum class KbMode { ALPHA, SYM, SYM2, NUM }
 
 @Composable
 fun KeyboardView(
@@ -164,6 +165,15 @@ fun KeyboardView(
     val singleShiftClear = CipherUiState.state.singleShiftClearSerial
     LaunchedEffect(singleShiftClear) { if (!shiftLocked) { shift = false; CipherUiState.setKeyboardShift(false) } }
 
+    var numTrigger by remember { mutableIntStateOf(0) }
+    LaunchedEffect(numTrigger) {
+        if (numTrigger > 0) {
+            mode = KbMode.NUM; shift = false; shiftLocked = false
+            CipherUiState.setKeyboardShift(false)
+            numTrigger = 0
+        }
+    }
+
     val kbReset = CipherUiState.state.kbResetSerial
     LaunchedEffect(kbReset) {
         mode = KbMode.ALPHA
@@ -188,6 +198,7 @@ fun KeyboardView(
         KbMode.ALPHA -> if (shift) ALPHA_SHIFT else ALPHA
         KbMode.SYM -> SYMBOLS
         KbMode.SYM2 -> SYMBOLS2
+        KbMode.NUM -> NUMERIC
     }
 
     fun onKey(key: KbKey) {
@@ -240,17 +251,23 @@ fun KeyboardView(
             else -> {
                 onChar(key.label)
                 if (shift && !shiftLocked && mode == KbMode.ALPHA) { shift = false; CipherUiState.setKeyboardShift(false) }
-                if (!symLocked && CipherPrefs.symAutoReturn && mode != KbMode.ALPHA) mode = KbMode.ALPHA
+                if (!symLocked && CipherPrefs.symAutoReturn && (mode == KbMode.SYM || mode == KbMode.SYM2)) mode = KbMode.ALPHA
             }
         }
     }
 
     fun onLongPress(key: KbKey) {
+        if (mode == KbMode.NUM && key.label == "0") {
+            mode = KbMode.ALPHA; shift = false; shiftLocked = false
+            CipherUiState.setKeyboardShift(false)
+            return
+        }
+        if (key.label == "?123") {
+            numTrigger++
+            return
+        }
         if (key.label == "\u21E7" && CipherPrefs.shiftLockMethod == "long-press") {
             shiftLocked = true; shift = true; CipherUiState.setKeyboardShift(true); return
-        }
-        if (key.label == "?123" && CipherPrefs.symLockMethod == "long-press") {
-            symLocked = true; mode = KbMode.SYM; return
         }
         key.longPress?.let { onChar(it) }
     }
@@ -262,29 +279,33 @@ fun KeyboardView(
         modifier = modifier.fillMaxWidth().background(kbBg).padding(horizontal = 3.dp, vertical = 3.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        rows.forEach { row ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                row.forEach { key ->
-                    val isSpecial = key.label.length > 1
-                    val w = when (key.label) {
-                        "\u232B" -> 1.6f; "\u21B5" -> 1.6f
-                        "\u21E7" -> 1.4f; "?123" -> 1.6f; "ABC" -> 1.6f; "=\\<" -> 1.6f
-                        " " -> if (mode == KbMode.ALPHA) 4.5f else 3.0f
-                        "," -> 0.7f; "." -> 0.7f; "_" -> 0.8f; "/" -> 0.8f
-                        "<" -> 0.7f; ">" -> 0.7f
-                        else -> 1f
-                    }
-                    val bg = if (isSpecial) specialBg else keyBg
-                    val fs = when (key.label) {
-                        "\u232B", "\u21B5", "\u21E7" -> 28.sp
-                        "?123", "ABC", "=\\<" -> 14.sp
-                        else -> if (isSpecial) 14.sp else 20.sp
-                    }
+        key(mode) {
+            rows.forEach { row ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    row.forEach { key ->
+                        val isSpecial = key.label.length > 1
+                        val w = if (mode == KbMode.NUM) {
+                            if (key.label == "\u21B5") 2f else 1f
+                        } else when (key.label) {
+                            "\u232B" -> 1.6f; "\u21B5" -> 1.6f
+                            "\u21E7" -> 1.4f; "?123" -> 1.6f; "ABC" -> 1.6f; "=\\<" -> 1.6f
+                            " " -> if (mode == KbMode.ALPHA) 4.5f else 3.0f
+                            "," -> 0.7f; "." -> 0.7f; "_" -> 0.8f; "/" -> 0.8f
+                            "<" -> 0.7f; ">" -> 0.7f
+                            else -> 1f
+                        }
+                        val bg = if (isSpecial) specialBg else keyBg
+                        val fs = when (key.label) {
+                            "\u232B", "\u21B5", "\u21E7" -> 28.sp
+                            "?123", "ABC", "=\\<" -> 14.sp
+                            else -> if (isSpecial) 14.sp else 20.sp
+                        }
                     val displayKey = if (showLockHint && key.label == "\u21B5")
                         key.copy(hint = "\uD83D\uDD12") else key
                     KeyboardKey(
                         displayKey, w, bg, keyFg, hintFg, fs,
                         active = (shift && key.label == "\u21E7") || (mode != KbMode.ALPHA && (key.label == "?123" || key.label == "ABC")) || (mode == KbMode.SYM2 && key.label == "=\\<"),
+                        numMode = (mode == KbMode.NUM),
                         popoverSerial = popoverSerial,
                         bumpPopoverSerial = { bumpPopoverSerial() },
                         onTap = {
@@ -309,6 +330,7 @@ fun KeyboardView(
                 }
             }
         }
+        } // key(mode)
     }
 }
 
@@ -316,6 +338,7 @@ fun KeyboardView(
 private fun RowScope.KeyboardKey(
     key: KbKey, weight: Float, bg: Color, fg: Color, hintFg: Color, fs: androidx.compose.ui.unit.TextUnit,
     active: Boolean = false,
+    numMode: Boolean = false,
     popoverSerial: Long = 0L,
     bumpPopoverSerial: () -> Long = { 0L },
     onTap: () -> Unit,
@@ -403,10 +426,17 @@ private fun RowScope.KeyboardKey(
                                     val down = awaitFirstDown(requireUnconsumed = false)
                                     var longPressTriggered = false
                                     val longPressJob = onLongPress?.let { lp ->
+                                        val hasLongPressAction = key.longPress != null ||
+                                            key.label == "\u21E7" ||
+                                            key.label == "?123" ||
+                                            key.label == "\u21B5" ||
+                                            (numMode && key.label == "0")
                                         launch {
                                             delay(CipherPrefs.longPressMs.toLong())
                                             longPressTriggered = true
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            if (hasLongPressAction) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            }
                                             pressed = true
                                             val longLabel = key.longPress ?: key.label
                                             if (CipherPrefs.popupEnabled) showPopover(bumpPopoverSerial(), longLabel)
@@ -516,4 +546,11 @@ private val SYMBOLS2 = listOf(
     listOf(KbKey("\u00A3"),KbKey("\u00A2"),KbKey("\u20AC"),KbKey("\u00A5"),KbKey("^"),KbKey("\u00B0"),KbKey("="),KbKey("{"),KbKey("}")),
     listOf(KbKey("=\\<"),KbKey("\\"),KbKey("\u00A9"),KbKey("\u00AE"),KbKey("\u2122"),KbKey("\u2105"),KbKey("["),KbKey("]"),KbKey("\u232B")),
     listOf(KbKey("ABC"),KbKey(","),KbKey("<"),KbKey(" "),KbKey(">"),KbKey("."),KbKey("\u21B5")),
+)
+
+private val NUMERIC = listOf(
+    listOf(KbKey("7"),KbKey("8"),KbKey("9"),KbKey("("),KbKey(")")),
+    listOf(KbKey("4"),KbKey("5"),KbKey("6"),KbKey("+"),KbKey("-")),
+    listOf(KbKey("1"),KbKey("2"),KbKey("3"),KbKey("*"),KbKey("/")),
+    listOf(KbKey("0", hint = "abc"),KbKey("."),KbKey(" "),KbKey("\u21B5")),
 )

@@ -42,6 +42,7 @@ configure<ApplicationExtension> {
     buildTypes {
         named("debug") {
             applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
             isDebuggable = true
         }
         named("release") {

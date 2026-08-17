@@ -6,6 +6,7 @@ import android.inputmethodservice.InputMethodService
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
@@ -52,6 +53,57 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
     private val pgpEngine by lazy { PgpEngine() }
     private val cryptoExecutor = Executors.newSingleThreadExecutor()
     private var cachedPassphrase: String? = null
+    private var inputManager: android.hardware.input.InputManager? = null
+    private var isHardwareKeyboardConnected = false
+
+    private val inputDeviceListener = object : android.hardware.input.InputManager.InputDeviceListener {
+        override fun onInputDeviceAdded(deviceId: Int) {
+            updateHardwareKeyboardState()
+        }
+
+        override fun onInputDeviceRemoved(deviceId: Int) {
+            updateHardwareKeyboardState()
+        }
+
+        override fun onInputDeviceChanged(deviceId: Int) {
+            updateHardwareKeyboardState()
+        }
+    }
+
+    private fun readHasHardwareKeyboard(conf: android.content.res.Configuration): Boolean {
+        return conf.keyboard != android.content.res.Configuration.KEYBOARD_NOKEYS &&
+            conf.hardKeyboardHidden != android.content.res.Configuration.HARDKEYBOARDHIDDEN_YES
+    }
+
+    private fun hasExternalKeyboardDevice(): Boolean {
+        val ids: IntArray = android.view.InputDevice.getDeviceIds()
+        val found: MutableList<android.view.InputDevice> = mutableListOf()
+        for (deviceId in ids) {
+            val device: android.view.InputDevice? = android.view.InputDevice.getDevice(deviceId)
+            if (device != null) found.add(device)
+        }
+        return found.any { d ->
+            d.isExternal &&
+                (d.sources and android.view.InputDevice.SOURCE_KEYBOARD) != 0
+        }
+    }
+
+    private fun updateHardwareKeyboardState() {
+        val configConnected = readHasHardwareKeyboard(resources.configuration)
+        val deviceConnected = hasExternalKeyboardDevice()
+        val connected = configConnected || deviceConnected
+        if (connected != isHardwareKeyboardConnected) {
+            isHardwareKeyboardConnected = connected
+            CipherUiState.setPhysicalKeyboardConnected(connected)
+            Handler(Looper.getMainLooper()).post {
+                if (CipherUiState.state.isActive) {
+                    // Keep the panel visible: physical keyboard replaces the touch keyboard.
+                    // The Compose layer hides the KeyboardView based on physicalKeyboardConnected.
+                    requestShowSelf(0)
+                }
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -59,6 +111,18 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
+        try {
+            inputManager = getSystemService(android.content.Context.INPUT_SERVICE) as? android.hardware.input.InputManager
+            inputManager?.registerInputDeviceListener(inputDeviceListener, Handler(Looper.getMainLooper()))
+            updateHardwareKeyboardState()
+        } catch (e: Exception) {
+            Log.e("CipherIME", "onCreate detection error", e)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        updateHardwareKeyboardState()
     }
 
     override fun onCreateInputView(): View {
@@ -85,34 +149,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                     CipherPanel(
                         onEncrypt = { CipherUiState.cancelBackspaceRepeat(); onEncryptAction() },
                         onDecrypt = { CipherUiState.cancelBackspaceRepeat(); onDecryptAction() },
-                        onSend = {
-                            CipherUiState.cancelBackspaceRepeat()
-                            val s = CipherUiState.state
-                            if (s.isActive && s.selectedRecipientIds.isNotEmpty() && s.composeText.isNotBlank()) {
-                                encryptAndSend(cachedPassphrase)
-                            } else if (s.isActive && s.selectedRecipientIds.isEmpty() && s.composeText.isNotBlank()) {
-                                if (s.selectedSigningKeyId != null) {
-                                    if (cachedPassphrase == null) {
-                                        CipherUiState.requestPassphrase(PendingAction.SIGN)
-                                    } else {
-                                        doSign(cachedPassphrase!!)
-                                    }
-                                } else if (CipherPrefs.encryptToSelf && CipherPrefs.defaultKeyId != null) {
-                                    encryptAndSend(cachedPassphrase)
-                                } else if (keyManager.listKeys().isEmpty()) {
-                                    CipherUiState.setError("Create or import a PGP key to encrypt or sign")
-                                } else if (recipientManager.listRecipients().isEmpty()) {
-                                    CipherUiState.setError("Add recipients via person icon")
-                                } else {
-                                    CipherUiState.showRecipientPicker(sendAfter = true)
-                                }
-                            } else {
-                                val ic = currentInputConnection
-                                val text = s.composeText
-                                if (ic != null && text.isNotEmpty()) { ic.commitText(text, 1) }
-                                CipherUiState.updateComposeText("")
-                            }
-                        },
+                        onSend = { CipherUiState.cancelBackspaceRepeat(); handleSend() },
                         onSign = {
                             CipherUiState.cancelBackspaceRepeat()
                             val s = CipherUiState.state
@@ -223,6 +260,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                         },
                     )
 
+                    if (!CipherUiState.state.physicalKeyboardConnected) {
                     KeyboardView(
                         onChar = { c ->
                             if (CipherUiState.state.isActive) {
@@ -326,6 +364,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                         },
                         showLockHint = CipherUiState.state.isActive && CipherUiState.state.selectedRecipientIds.isNotEmpty(),
                     )
+                    }
                 }
             }
         }
@@ -335,6 +374,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         super.onDestroy()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         try { unregisterReceiver(screenOffReceiver) } catch (_: Exception) {}
+        try { inputManager?.unregisterInputDeviceListener(inputDeviceListener) } catch (_: Exception) {}
     }
 
     private val screenOffReceiver = object : android.content.BroadcastReceiver() {
@@ -525,6 +565,74 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         if (CipherUiState.state.pendingAction == null) {
             CipherUiState.resetKeyboardForInput(isPasswordInput(editorInfo))
         }
+    }
+
+    private fun handleSend() {
+        val s = CipherUiState.state
+        if (s.isActive && s.selectedRecipientIds.isNotEmpty() && s.composeText.isNotBlank()) {
+            encryptAndSend(cachedPassphrase)
+        } else if (s.isActive && s.selectedRecipientIds.isEmpty() && s.composeText.isNotBlank()) {
+            if (s.selectedSigningKeyId != null) {
+                if (cachedPassphrase == null) {
+                    CipherUiState.requestPassphrase(PendingAction.SIGN)
+                } else {
+                    doSign(cachedPassphrase!!)
+                }
+            } else if (CipherPrefs.encryptToSelf && CipherPrefs.defaultKeyId != null) {
+                encryptAndSend(cachedPassphrase)
+            } else if (keyManager.listKeys().isEmpty()) {
+                CipherUiState.setError("Create or import a PGP key to encrypt or sign")
+            } else if (recipientManager.listRecipients().isEmpty()) {
+                CipherUiState.setError("Add recipients via person icon")
+            } else {
+                CipherUiState.showRecipientPicker(sendAfter = true)
+            }
+        } else {
+            val ic = currentInputConnection
+            val text = s.composeText
+            if (ic != null && text.isNotEmpty()) { ic.commitText(text, 1) }
+            CipherUiState.updateComposeText("")
+        }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        val s = CipherUiState.state
+        if (s.isActive && isHardwareKeyboardConnected) {
+            // Ctrl+Enter submits
+            if (event.isCtrlPressed && (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                handleSend()
+                return true
+            }
+            // Plain Enter: submit passphrase or insert newline
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                if (s.pendingAction != null && s.composeText.isNotBlank()) {
+                    val pw = s.composeText
+                    when (s.pendingAction) {
+                        PendingAction.ENCRYPT -> doEncrypt(pw)
+                        PendingAction.DECRYPT -> doDecrypt(pw)
+                        PendingAction.SIGN -> doSign(pw)
+                        null -> {}
+                    }
+                } else {
+                    CipherUiState.insertAtCursor("\n")
+                }
+                return true
+            }
+            val char = event.unicodeChar
+            if (char != 0) {
+                CipherUiState.insertAtCursor(char.toChar().toString())
+                return true
+            }
+            when (keyCode) {
+                KeyEvent.KEYCODE_DEL -> { CipherUiState.deleteBeforeCursor(); return true }
+                KeyEvent.KEYCODE_FORWARD_DEL -> { CipherUiState.deleteAfterCursor(); return true }
+                KeyEvent.KEYCODE_DPAD_LEFT -> { CipherUiState.moveCursor(-1); return true }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> { CipherUiState.moveCursor(1); return true }
+                KeyEvent.KEYCODE_MOVE_HOME -> { CipherUiState.setCursorPos(0); return true }
+                KeyEvent.KEYCODE_MOVE_END -> { CipherUiState.setCursorPos(CipherUiState.state.composeText.length); return true }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     private fun isPasswordInput(editorInfo: EditorInfo?): Boolean {
