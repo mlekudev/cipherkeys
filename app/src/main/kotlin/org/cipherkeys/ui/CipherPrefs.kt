@@ -28,9 +28,9 @@ object CipherPrefs {
     private const val DEFAULT_KEY = "default_key"
     private const val ALWAYS_ASK_RECIPIENTS = "always_ask_recipients"
 
-    private const val DEFAULT_KEY_HEIGHT = 42
+    private const val DEFAULT_KEY_HEIGHT = 47
     private const val DEFAULT_PANEL_LINES = 4
-    private const val DEFAULT_LONG_PRESS_MS = 400
+    private const val DEFAULT_LONG_PRESS_MS = 250
 
     private var prefs: SharedPreferences? = null
 
