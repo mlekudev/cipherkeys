@@ -5,8 +5,8 @@ Zero-padded monotonic counter. Increment `projectVersionCode` and set `projectVe
 
 ## Version Bump
 1. Increment `projectVersionCode` (e.g., 18 → 19) and `projectVersionName` (e.g., `00018` → `00019`) in `gradle.properties`
-2. Build: `./gradlew assembleDebug`
-3. Copy APK: `cp app/build/outputs/apk/debug/app-debug.apk /home/mleku/s/cipherkeys-releases/cipherkeys-v00019.apk`
+2. Build: `./gradlew assembleRelease`
+3. Copy APK: `cp app/build/outputs/apk/release/app-release.apk /home/mleku/s/cipherkeys-releases/cipherkeys-v00019.apk`
 
 ## README Update (cipherkeys repo)
 1. Update the "Latest release" link at the top of `README.md` with new version
