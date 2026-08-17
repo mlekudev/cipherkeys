@@ -520,10 +520,10 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         return recips
     }
 
-    override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
-        super.onStartInputView(info, restarting)
-        if (!restarting && CipherUiState.state.pendingAction == null) {
-            CipherUiState.resetKeyboardForInput(isPasswordInput(info))
+    override fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(editorInfo, restarting)
+        if (CipherUiState.state.pendingAction == null) {
+            CipherUiState.resetKeyboardForInput(isPasswordInput(editorInfo))
         }
     }
 
