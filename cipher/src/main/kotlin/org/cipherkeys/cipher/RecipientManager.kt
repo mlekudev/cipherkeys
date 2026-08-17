@@ -43,11 +43,20 @@ class RecipientManager(context: Context) {
             .remove(keyField(keyId, "name"))
             .remove(keyField(keyId, "userid"))
             .remove(keyField(keyId, "key"))
+            .remove(recencyField(keyId))
             .apply()
+    }
+
+    fun markSelected(keyId: Long) {
+        val now = System.currentTimeMillis()
+        val recency = getRecencyMap().toMutableMap()
+        recency[keyId] = now
+        prefs.edit().putString(PREF_RECENCY, encodeRecency(recency)).apply()
     }
 
     fun listRecipients(): List<RecipientInfo> {
         val ids = prefs.getString(PREF_IDS, null) ?: return emptyList()
+        val recency = getRecencyMap()
         return ids.split(",").filter { it.isNotEmpty() }.map { idStr ->
             val id = idStr.toLong()
             RecipientInfo(
@@ -55,7 +64,25 @@ class RecipientManager(context: Context) {
                 name = prefs.getString(keyField(id, "name"), "") ?: "",
                 userId = prefs.getString(keyField(id, "userid"), "") ?: ""
             )
-        }
+        }.sortedWith(compareByDescending<RecipientInfo> { recency[it.keyId] ?: 0L }
+            .thenBy { it.name.lowercase() })
+    }
+
+    private fun getRecencyMap(): Map<Long, Long> {
+        val raw = prefs.getString(PREF_RECENCY, null) ?: return emptyMap()
+        return raw.split(",").filter { it.isNotEmpty() }.mapNotNull { entry ->
+            val parts = entry.split(":")
+            if (parts.size == 2) {
+                val id = parts[0].toLongOrNull()
+                val ts = parts[1].toLongOrNull()
+                if (id != null && ts != null) id to ts else null
+            } else null
+        }.toMap()
+    }
+
+    private fun encodeRecency(recency: Map<Long, Long>): String {
+        return recency.entries.sortedByDescending { it.value }
+            .joinToString(",") { "${it.key}:${it.value}" }
     }
 
     fun getRecipientPublicKey(keyId: Long): PGPPublicKeyRing? {
@@ -75,9 +102,11 @@ class RecipientManager(context: Context) {
     }
 
     private fun keyField(keyId: Long, field: String) = "recipient_${keyId}_$field"
+    private fun recencyField(keyId: Long) = "recipient_${keyId}_recency"
 
     companion object {
         private const val PREFS_NAME = "cipherkeys_recipients"
         private const val PREF_IDS = "recipient_ids"
+        private const val PREF_RECENCY = "recipient_recency"
     }
 }

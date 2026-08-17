@@ -33,6 +33,7 @@ data class CipherState(
     val kbResetSerial: Long = 0L,
     val initialShiftOn: Boolean = true,
     val physicalKeyboardConnected: Boolean = false,
+    val recipientPickerConfirmed: Boolean = false,
 )
 
 enum class PendingAction { ENCRYPT, DECRYPT, SIGN }
@@ -132,11 +133,19 @@ object CipherUiState {
     }
 
     fun showRecipientPicker(sendAfter: Boolean = false) {
-        state = state.copy(showRecipientPicker = true, pendingSendAfterPicker = sendAfter, errorMessage = null)
+        state = state.copy(showRecipientPicker = true, pendingSendAfterPicker = sendAfter, errorMessage = null, recipientPickerConfirmed = false)
     }
 
     fun hideRecipientPicker() {
         state = state.copy(showRecipientPicker = false, pendingSendAfterPicker = false)
+    }
+
+    fun confirmRecipientPicker() {
+        state = state.copy(showRecipientPicker = false, pendingSendAfterPicker = false, recipientPickerConfirmed = true)
+    }
+
+    fun consumeRecipientPickerConfirmed() {
+        state = state.copy(recipientPickerConfirmed = false)
     }
 
     fun shouldSendAfterPicker(): Boolean = state.pendingSendAfterPicker

@@ -252,7 +252,11 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                         },
                         signingKeyName = signName,
                         allRecipients = recipientManager.listRecipients(),
-                        onToggleRecipient = { id -> CipherUiState.toggleRecipient(id) },
+                        onToggleRecipient = { id ->
+                            val wasSelected = CipherUiState.state.selectedRecipientIds.contains(id)
+                            CipherUiState.toggleRecipient(id)
+                            if (!wasSelected) recipientManager.markSelected(id)
+                        },
                         allKeys = keyManager.listKeys(),
                         onSelectSigner = { id ->
                             CipherUiState.setSigningKey(id)
@@ -398,7 +402,19 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         if (keyManager.listKeys().isEmpty()) {
             CipherUiState.setError("Create or import a PGP key to encrypt"); return
         }
+        val justConfirmed = s.recipientPickerConfirmed
+        if (justConfirmed) {
+            CipherUiState.consumeRecipientPickerConfirmed()
+        }
         if (s.selectedRecipientIds.isEmpty()) {
+            if (recipientManager.listRecipients().isEmpty()) {
+                CipherUiState.setError("Add recipients via person icon")
+            } else {
+                CipherUiState.showRecipientPicker()
+            }
+            return
+        }
+        if (CipherPrefs.alwaysAskRecipients && !justConfirmed) {
             if (recipientManager.listRecipients().isEmpty()) {
                 CipherUiState.setError("Add recipients via person icon")
             } else {
@@ -435,13 +451,20 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
     }
 
     private fun doEncrypt(pw: String?) {
-        val s = CipherUiState.state; CipherUiState.setLoading(true)
+        val s = CipherUiState.state
+        val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
+        if (isEncryptedMessage(msg)) {
+            CipherUiState.setInfo("Message already encrypted", isWarning = true)
+            CipherUiState.clearPendingAndSaved()
+            if (s.pendingAction != null) CipherUiState.cancelPassphrase()
+            return
+        }
+        CipherUiState.setLoading(true)
         cryptoExecutor.execute {
             try {
                 val recips = getEncryptRecipients(s)
                 if (recips.isEmpty()) { CipherUiState.setError("No valid recipient keys"); cachedPassphrase = null; if (s.pendingAction != null) CipherUiState.cancelPassphrase(); return@execute }
                 val signKey = s.selectedSigningKeyId?.let { keyManager.getSecretKeyRing(it) }
-                val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
                 val r = pgpEngine.encryptArmored(msg, recips, signKey, pw)
                 if (pw != null) cachedPassphrase = pw
                 CipherUiState.updateComposeText(r)
@@ -454,13 +477,41 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
     }
 
     private fun encryptAndSend(pw: String?) {
-        val s = CipherUiState.state; CipherUiState.setLoading(true)
+        val s = CipherUiState.state
+        val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
+        if (isEncryptedMessage(msg)) {
+            // Already encrypted - commit directly, do not re-encrypt
+            val ic = currentInputConnection
+            if (ic != null) {
+                ic.commitText(msg, 1)
+                val ei = currentInputEditorInfo
+                val action = ei?.imeOptions?.and(android.view.inputmethod.EditorInfo.IME_MASK_ACTION) ?: 0
+                if (action != 0) ic.performEditorAction(action)
+                else sendDefaultEditorAction(true)
+            }
+            CipherUiState.clearText()
+            CipherUiState.clearPendingAndSaved()
+            CipherUiState.clearError()
+            return
+        }
+        val justConfirmed = s.recipientPickerConfirmed
+        if (justConfirmed) {
+            CipherUiState.consumeRecipientPickerConfirmed()
+        }
+        if (CipherPrefs.alwaysAskRecipients && !justConfirmed) {
+            if (recipientManager.listRecipients().isEmpty()) {
+                CipherUiState.setError("Add recipients via person icon")
+            } else {
+                CipherUiState.showRecipientPicker(sendAfter = true)
+            }
+            return
+        }
+        CipherUiState.setLoading(true)
         cryptoExecutor.execute {
             try {
                 val recips = getEncryptRecipients(s)
                 if (recips.isEmpty()) { CipherUiState.setError("No valid recipient keys"); return@execute }
                 val signKey = s.selectedSigningKeyId?.let { keyManager.getSecretKeyRing(it) }
-                val msg = if (s.savedComposeText.isNotEmpty()) s.savedComposeText else s.composeText
                 val r = pgpEngine.encryptArmored(msg, recips, signKey, pw)
                 if (pw != null) cachedPassphrase = pw
                 Handler(Looper.getMainLooper()).post {
@@ -643,6 +694,10 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             variation == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
             ((type and android.text.InputType.TYPE_MASK_CLASS) == android.text.InputType.TYPE_CLASS_NUMBER &&
                 variation == android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD)
+    }
+
+    private fun isEncryptedMessage(text: String): Boolean {
+        return text.contains("-----BEGIN PGP MESSAGE-----")
     }
 
     private var lastSelStart = -1

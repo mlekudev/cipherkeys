@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.cipherkeys.cipher.RecipientInfo
 import org.cipherkeys.cipher.RecipientManager
+import org.cipherkeys.ui.CipherPrefs
 import org.cipherkeys.ui.CipherUiState
 
 @Composable
@@ -79,6 +80,28 @@ fun RecipientListScreen(
             }
         }
 
+        item {
+            Card(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Always select recipients", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Show recipient picker on every encryption",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = CipherPrefs.alwaysAskRecipients,
+                        onCheckedChange = { CipherPrefs.updateAlwaysAskRecipients(it) },
+                    )
+                }
+            }
+        }
+
         if (recipients.isEmpty()) {
             item {
                 Text(
@@ -93,7 +116,11 @@ fun RecipientListScreen(
             RecipientCard(
                 recipient = recipient,
                 isActive = isActive,
-                onToggle = { CipherUiState.toggleRecipient(recipient.keyId) },
+                onToggle = {
+                    val wasActive = activeIds.contains(recipient.keyId)
+                    CipherUiState.toggleRecipient(recipient.keyId)
+                    if (!wasActive) recipientManager.markSelected(recipient.keyId)
+                },
                 onCopyKey = {
                     val armored = recipientManager.exportArmoredPublicKey(recipient.keyId)
                     if (armored != null) {

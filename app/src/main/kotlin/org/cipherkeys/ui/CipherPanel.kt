@@ -14,10 +14,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -357,7 +360,13 @@ fun CipherPanel(
                         color = panelFg,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                     )
-                    allRecipients.forEach { recip ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 160.dp)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        allRecipients.forEach { recip ->
                         val isSelected = recip.keyId in state.selectedRecipientIds
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
@@ -387,6 +396,7 @@ fun CipherPanel(
                                 modifier = Modifier.size(24.dp),
                             )
                         }
+                        }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
@@ -408,7 +418,7 @@ fun CipherPanel(
                         IconButton(
                             onClick = {
                                 val sendAfter = CipherUiState.shouldSendAfterPicker()
-                                CipherUiState.hideRecipientPicker()
+                                CipherUiState.confirmRecipientPicker()
                                 CipherUiState.setLoading(true)
                                 if (sendAfter) onSend() else onEncrypt()
                             },

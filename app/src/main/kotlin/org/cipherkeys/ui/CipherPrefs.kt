@@ -26,6 +26,7 @@ object CipherPrefs {
     private const val DEV_MODE = "dev_mode"
     private const val ENCRYPT_TO_SELF = "encrypt_to_self"
     private const val DEFAULT_KEY = "default_key"
+    private const val ALWAYS_ASK_RECIPIENTS = "always_ask_recipients"
 
     private const val DEFAULT_KEY_HEIGHT = 42
     private const val DEFAULT_PANEL_LINES = 4
@@ -78,6 +79,9 @@ object CipherPrefs {
     var defaultKeyId by mutableStateOf<Long?>(null)
         private set
 
+    var alwaysAskRecipients by mutableStateOf(true)
+        private set
+
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         keyHeightDp = prefs!!.getInt(KEY_HEIGHT, DEFAULT_KEY_HEIGHT)
@@ -96,6 +100,7 @@ object CipherPrefs {
         encryptToSelf = prefs!!.getBoolean(ENCRYPT_TO_SELF, false)
         val defaultId = prefs!!.getLong(DEFAULT_KEY, -1L)
         defaultKeyId = if (defaultId >= 0) defaultId else null
+        alwaysAskRecipients = prefs!!.getBoolean(ALWAYS_ASK_RECIPIENTS, true)
     }
 
     fun updateKeyHeight(value: Int) {
@@ -174,5 +179,10 @@ object CipherPrefs {
     fun updateDefaultKeyId(id: Long?) {
         defaultKeyId = id
         prefs?.edit()?.putLong(DEFAULT_KEY, id ?: -1L)?.apply()
+    }
+
+    fun updateAlwaysAskRecipients(v: Boolean) {
+        alwaysAskRecipients = v
+        prefs?.edit()?.putBoolean(ALWAYS_ASK_RECIPIENTS, v)?.apply()
     }
 }
