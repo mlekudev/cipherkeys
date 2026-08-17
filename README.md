@@ -4,7 +4,7 @@ Android keyboard with PGP encryption.
 
 After installing, enable in **Settings > System > Keyboard > On-screen keyboard > CipherKeys**.
 
-**Latest release**: [cipherkeys 00024](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00024/cipherkeys-v00024.apk)
+**Latest release**: [cipherkeys 00025](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00025/cipherkeys-v00025.apk)
 
 ## Features
 
@@ -28,6 +28,8 @@ After installing, enable in **Settings > System > Keyboard > On-screen keyboard 
 - Signature verification on paste with valid/invalid/expired banners
 - Passphrase input auto-resets keyboard to lowercase
 - Backspace repeat on long-press
+- Physical keyboard support: panel accepts external keyboard input, Ctrl+Enter submits
+- Numeric keypad layer via long-press ?123
 - Interactive help system
 
 ## Releases
@@ -58,6 +60,7 @@ After installing, enable in **Settings > System > Keyboard > On-screen keyboard 
 | 00022 | 2026-08-16 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00022/cipherkeys-v00022.apk) |
 | 00023 | 2026-08-16 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00023/cipherkeys-v00023.apk) |
 | 00024 | 2026-08-17 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00024/cipherkeys-v00024.apk) |
+| 00025 | 2026-08-17 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00025/cipherkeys-v00025.apk) |
 
 ## Updating with Obtanium
 
