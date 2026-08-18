@@ -95,12 +95,18 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         if (connected != isHardwareKeyboardConnected) {
             isHardwareKeyboardConnected = connected
             CipherUiState.setPhysicalKeyboardConnected(connected)
-            Handler(Looper.getMainLooper()).post {
-                if (CipherUiState.state.isActive) {
-                    // Keep the panel visible: physical keyboard replaces the touch keyboard.
-                    // The Compose layer hides the KeyboardView based on physicalKeyboardConnected.
-                    requestShowSelf(0)
-                }
+        }
+        Handler(Looper.getMainLooper()).post {
+            if (isHardwareKeyboardConnected) {
+                // Physical keyboard connected: keep the panel bar visible and accessible.
+                // Re-evaluate onEvaluateInputViewShown() (which returns true when connected)
+                // to override the system's config-change suppression, then force-show.
+                updateInputViewShown()
+                requestShowSelf(0)
+            } else if (CipherUiState.state.isActive) {
+                // Keyboard removed while panel open: touch keyboard reappears.
+                updateInputViewShown()
+                requestShowSelf(0)
             }
         }
     }
@@ -123,6 +129,13 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
         updateHardwareKeyboardState()
+    }
+
+    override fun onEvaluateInputViewShown(): Boolean {
+        // When a physical keyboard is connected, keep the IME window visible so the
+        // panel stays accessible (the Compose layer hides the touch keyboard keys).
+        if (isHardwareKeyboardConnected) return true
+        return super.onEvaluateInputViewShown()
     }
 
     override fun onCreateInputView(): View {
