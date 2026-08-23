@@ -34,6 +34,8 @@ data class CipherState(
     val initialShiftOn: Boolean = true,
     val physicalKeyboardConnected: Boolean = false,
     val recipientPickerConfirmed: Boolean = false,
+    val kbNumMode: Boolean = false,
+    val kbEmailMode: Boolean = false,
 )
 
 enum class PendingAction { ENCRYPT, DECRYPT, SIGN }
@@ -190,11 +192,13 @@ object CipherUiState {
         state = state.copy(keyboardShiftOn = false, singleShiftClearSerial = state.singleShiftClearSerial + 1)
     }
 
-    fun resetKeyboardForInput(isPassword: Boolean) {
+    fun resetKeyboardForInput(isPassword: Boolean, isNumeric: Boolean = false, isEmail: Boolean = false) {
         state = state.copy(
             isActive = false,
             kbResetSerial = state.kbResetSerial + 1,
             initialShiftOn = !isPassword && CipherPrefs.autoCapitalize,
+            kbNumMode = isNumeric,
+            kbEmailMode = isEmail,
         )
     }
 

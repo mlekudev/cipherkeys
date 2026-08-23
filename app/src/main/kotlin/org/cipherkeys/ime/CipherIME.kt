@@ -629,7 +629,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
     override fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInput(editorInfo, restarting)
         if (CipherUiState.state.pendingAction == null) {
-            CipherUiState.resetKeyboardForInput(isPasswordInput(editorInfo))
+            CipherUiState.resetKeyboardForInput(isPasswordInput(editorInfo), isNumericInput(editorInfo), isEmailInput(editorInfo))
         }
     }
 
@@ -709,6 +709,21 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             variation == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
             ((type and android.text.InputType.TYPE_MASK_CLASS) == android.text.InputType.TYPE_CLASS_NUMBER &&
                 variation == android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD)
+    }
+
+    private fun isNumericInput(editorInfo: EditorInfo?): Boolean {
+        val type = editorInfo?.inputType ?: return false
+        val cls = type and android.text.InputType.TYPE_MASK_CLASS
+        return cls == android.text.InputType.TYPE_CLASS_NUMBER ||
+            cls == android.text.InputType.TYPE_CLASS_PHONE ||
+            cls == android.text.InputType.TYPE_CLASS_DATETIME
+    }
+
+    private fun isEmailInput(editorInfo: EditorInfo?): Boolean {
+        val type = editorInfo?.inputType ?: return false
+        val variation = type and android.text.InputType.TYPE_MASK_VARIATION
+        return variation == android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS ||
+            variation == android.text.InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS
     }
 
     private fun isEncryptedMessage(text: String): Boolean {

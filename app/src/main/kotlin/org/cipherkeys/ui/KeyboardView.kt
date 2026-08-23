@@ -176,10 +176,15 @@ fun KeyboardView(
 
     val kbReset = CipherUiState.state.kbResetSerial
     LaunchedEffect(kbReset) {
-        mode = KbMode.ALPHA
+        if (CipherUiState.state.kbNumMode) {
+            mode = KbMode.NUM
+            shift = false
+        } else {
+            mode = KbMode.ALPHA
+            shift = CipherUiState.state.initialShiftOn
+        }
         shiftLocked = false
         symLocked = false
-        shift = CipherUiState.state.initialShiftOn
         CipherUiState.setKeyboardShift(shift)
     }
 
@@ -195,7 +200,12 @@ fun KeyboardView(
     }
 
     val rows: List<List<KbKey>> = when (mode) {
-        KbMode.ALPHA -> if (shift) ALPHA_SHIFT else ALPHA
+        KbMode.ALPHA -> {
+            val base = if (shift) ALPHA_SHIFT else ALPHA
+            if (CipherUiState.state.kbEmailMode) {
+                base.map { row -> row.map { k -> if (k.label == ",") KbKey("@") else k } }
+            } else base
+        }
         KbMode.SYM -> SYMBOLS
         KbMode.SYM2 -> SYMBOLS2
         KbMode.NUM -> NUMERIC
@@ -285,7 +295,7 @@ fun KeyboardView(
                     row.forEach { key ->
                         val isSpecial = key.label.length > 1
                         val w = if (mode == KbMode.NUM) {
-                            if (key.label == "\u21B5") 2f else 1f
+                            1f
                         } else when (key.label) {
                             "\u232B" -> 1.6f; "\u21B5" -> 1.6f
                             "\u21E7" -> 1.4f; "?123" -> 1.6f; "ABC" -> 1.6f; "=\\<" -> 1.6f
@@ -552,5 +562,5 @@ private val NUMERIC = listOf(
     listOf(KbKey("7"),KbKey("8"),KbKey("9"),KbKey("("),KbKey(")")),
     listOf(KbKey("4"),KbKey("5"),KbKey("6"),KbKey("+"),KbKey("-")),
     listOf(KbKey("1"),KbKey("2"),KbKey("3"),KbKey("*"),KbKey("/")),
-    listOf(KbKey("0", hint = "abc"),KbKey("."),KbKey(" "),KbKey("\u21B5")),
+    listOf(KbKey("0", hint = "abc"),KbKey("."),KbKey(" "),KbKey("\u232B"),KbKey("\u21B5")),
 )
