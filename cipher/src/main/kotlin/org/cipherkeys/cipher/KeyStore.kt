@@ -71,6 +71,18 @@ class KeyStore(context: Context) {
         return prefs.getString(keyEntry(keyId), null)
     }
 
+    fun storeSecretKeyRaw(keyId: Long, userId: String, armoredKey: String) {
+        val entry = prefs.getString(PREF_KEYS, null)
+            ?.split(",")?.filter { it.isNotEmpty() }?.toMutableSet()
+            ?: mutableSetOf()
+        entry.add(keyId.toString())
+        prefs.edit()
+            .putString(PREF_KEYS, entry.joinToString(","))
+            .putString(keyEntry(keyId), armoredKey)
+            .putString(keyMeta(keyId, "user"), userId)
+            .apply()
+    }
+
     fun getSecretKeyRing(keyId: Long): org.bouncycastle.openpgp.PGPSecretKeyRing? {
         val armored = prefs.getString(keyEntry(keyId), null) ?: return null
         return PGPainless.readKeyRing().secretKeyRing(armored)

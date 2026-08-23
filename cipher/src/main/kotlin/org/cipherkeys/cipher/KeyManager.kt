@@ -79,6 +79,14 @@ class KeyManager(private val keyStore: KeyStore) {
         return PGPPublicKeyRing(pubKeys)
     }
 
+    fun getArmoredSecretKey(keyId: Long): String? {
+        return keyStore.getArmoredKey(keyId)
+    }
+
+    fun importBackupKey(keyId: Long, userId: String, armoredKey: String) {
+        keyStore.storeSecretKeyRaw(keyId, userId, armoredKey)
+    }
+
     fun listKeys(): List<KeyInfo> {
         return keyStore.listStoredKeys().mapNotNull { stored ->
             val ring = keyStore.getSecretKeyRing(stored.keyId)

@@ -128,6 +128,38 @@ class PgpEngine {
         return decryptInternal(ciphertext.toByteArray(Charsets.UTF_8), options)
     }
 
+    fun encryptSymmetric(plaintext: String, passphrase: String): String {
+        val plainBytes = plaintext.toByteArray(Charsets.UTF_8)
+        val out = ByteArrayOutputStream()
+        val options = EncryptionOptions()
+            .addPassphrase(Passphrase.fromPassword(passphrase))
+        val producerOptions = ProducerOptions.encrypt(options).apply { setAsciiArmor(true) }
+        val stream = PGPainless.encryptAndOrSign()
+            .onOutputStream(out)
+            .withOptions(producerOptions)
+        stream.write(plainBytes)
+        stream.close()
+        return String(out.toByteArray())
+    }
+
+    fun decryptSymmetric(ciphertext: String, passphrase: String): String {
+        val options = ConsumerOptions.get()
+            .addDecryptionPassphrase(Passphrase.fromPassword(passphrase))
+        val input = ByteArrayInputStream(ciphertext.toByteArray(Charsets.UTF_8))
+        val output = ByteArrayOutputStream()
+        val stream = PGPainless.decryptAndOrVerify()
+            .onInputStream(input)
+            .withOptions(options)
+        val buf = ByteArray(4096)
+        var n: Int
+        while (stream.read(buf).also { n = it } != -1) output.write(buf, 0, n)
+        stream.close()
+        if (!stream.metadata.isEncrypted) {
+            throw CipherException("decryption failed - data is not encrypted")
+        }
+        return String(output.toByteArray())
+    }
+
     fun sign(
         plaintext: String,
         secretKey: PGPSecretKeyRing,

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -41,6 +42,7 @@ fun MainSettingsScreen(
     onKeysClick: () -> Unit,
     onRecipientsClick: () -> Unit,
     onKeyboardClick: () -> Unit = {},
+    onBackupClick: () -> Unit = {},
     onHelpClick: () -> Unit = {},
 ) {
     var lines by remember { mutableIntStateOf(CipherPrefs.panelLines) }
@@ -84,6 +86,13 @@ fun MainSettingsScreen(
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        Spacer(Modifier.height(12.dp))
+        SettingsCard(
+            title = "Backup & Restore",
+            subtitle = "Export or import keys, recipients, and settings as an encrypted file",
+            icon = { Icon(Icons.Default.Save, null, tint = MaterialTheme.colorScheme.primary) },
+            onClick = onBackupClick,
+        )
         Spacer(Modifier.height(12.dp))
         SettingsCard(
             title = "Help",

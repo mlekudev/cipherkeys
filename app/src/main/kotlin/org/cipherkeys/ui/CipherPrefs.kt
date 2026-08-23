@@ -185,4 +185,42 @@ object CipherPrefs {
         alwaysAskRecipients = v
         prefs?.edit()?.putBoolean(ALWAYS_ASK_RECIPIENTS, v)?.apply()
     }
+
+    fun exportPrefs(): Map<String, String> = mapOf(
+        KEY_HEIGHT to keyHeightDp.toString(),
+        PANEL_LINES to panelLines.toString(),
+        HAPTIC_ENABLED to hapticEnabled.toString(),
+        SOUND_ENABLED to soundEnabled.toString(),
+        SOUND_VOLUME to soundVolume.toString(),
+        POPUP_ENABLED to popupEnabled.toString(),
+        KEY_BG_SHADING to keyBgShading.toString(),
+        SHIFT_LOCK_METHOD to shiftLockMethod,
+        SYM_LOCK_METHOD to symLockMethod,
+        SYM_AUTO_RETURN to symAutoReturn.toString(),
+        AUTO_CAPITALIZE to autoCapitalize.toString(),
+        LONG_PRESS_MS to longPressMs.toString(),
+        DEV_MODE to devMode.toString(),
+        ENCRYPT_TO_SELF to encryptToSelf.toString(),
+        ALWAYS_ASK_RECIPIENTS to alwaysAskRecipients.toString(),
+        DEFAULT_KEY to (defaultKeyId?.toString() ?: "-1"),
+    )
+
+    fun importPrefs(map: Map<String, String>) {
+        map[KEY_HEIGHT]?.toIntOrNull()?.let { updateKeyHeight(it) }
+        map[PANEL_LINES]?.toIntOrNull()?.let { updatePanelLines(it) }
+        map[HAPTIC_ENABLED]?.toBooleanStrictOrNull()?.let { updateHapticEnabled(it) }
+        map[SOUND_ENABLED]?.toBooleanStrictOrNull()?.let { updateSoundEnabled(it) }
+        map[SOUND_VOLUME]?.toFloatOrNull()?.let { updateSoundVolume(it) }
+        map[POPUP_ENABLED]?.toBooleanStrictOrNull()?.let { updatePopupEnabled(it) }
+        map[KEY_BG_SHADING]?.toBooleanStrictOrNull()?.let { updateKeyBgShading(it) }
+        map[SHIFT_LOCK_METHOD]?.let { updateShiftLockMethod(it) }
+        map[SYM_LOCK_METHOD]?.let { updateSymLockMethod(it) }
+        map[SYM_AUTO_RETURN]?.toBooleanStrictOrNull()?.let { updateSymAutoReturn(it) }
+        map[AUTO_CAPITALIZE]?.toBooleanStrictOrNull()?.let { updateAutoCapitalize(it) }
+        map[LONG_PRESS_MS]?.toIntOrNull()?.let { updateLongPressMs(it) }
+        map[DEV_MODE]?.toBooleanStrictOrNull()?.let { updateDevMode(it) }
+        map[ENCRYPT_TO_SELF]?.toBooleanStrictOrNull()?.let { updateEncryptToSelf(it) }
+        map[ALWAYS_ASK_RECIPIENTS]?.toBooleanStrictOrNull()?.let { updateAlwaysAskRecipients(it) }
+        map[DEFAULT_KEY]?.toLongOrNull()?.let { id -> updateDefaultKeyId(if (id >= 0) id else null) }
+    }
 }

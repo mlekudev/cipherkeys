@@ -125,7 +125,14 @@ fun SettingsNav(
                     onKeysClick = { navController.navigate("keys") },
                     onRecipientsClick = { navController.navigate("recipients") },
                     onKeyboardClick = { navController.navigate("keyboard") },
+                    onBackupClick = { navController.navigate("backup") },
                     onHelpClick = { navController.navigate("help") },
+                )
+            }
+            composable("backup") {
+                BackupScreen(
+                    keyManager = keyManager,
+                    recipientManager = recipientManager,
                 )
             }
             composable("keyboard") {
@@ -187,6 +194,7 @@ private fun getTitle(route: String?): String {
         route.startsWith("help/") -> "Help"
         route == "help" -> "Help"
         route == "keyboard" -> "Keyboard"
+        route == "backup" -> "Backup & Restore"
         route.startsWith("keys/generate") -> "Generate Key"
         route.startsWith("keys/import") -> "Import Key"
         route.startsWith("keys") -> "Keys"
