@@ -53,10 +53,19 @@ configure<ApplicationExtension> {
 
     signingConfigs {
         create("release") {
-            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            val ksPath = (project.findProperty("CIPHERKEYS_KEYSTORE_PATH") as String?)
+                ?: System.getenv("CIPHERKEYS_KEYSTORE_PATH")
+                ?: error("CIPHERKEYS_KEYSTORE_PATH not set; configure ~/.gradle/gradle.properties")
+            val ksPass = (project.findProperty("CIPHERKEYS_KEYSTORE_PASSWORD") as String?)
+                ?: System.getenv("CIPHERKEYS_KEYSTORE_PASSWORD") ?: ""
+            val keyAlias = (project.findProperty("CIPHERKEYS_KEY_ALIAS") as String?)
+                ?: System.getenv("CIPHERKEYS_KEY_ALIAS") ?: "cipherkeys"
+            val keyPass = (project.findProperty("CIPHERKEYS_KEY_PASSWORD") as String?)
+                ?: System.getenv("CIPHERKEYS_KEY_PASSWORD") ?: ksPass
+            storeFile = file(ksPath)
+            storePassword = ksPass
+            this.keyAlias = keyAlias
+            keyPassword = keyPass
         }
     }
     buildTypes.named("release") {

@@ -2,6 +2,8 @@ package org.cipherkeys.cipher
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import org.pgpainless.PGPainless
 
 data class StoredKey(
@@ -11,8 +13,39 @@ data class StoredKey(
 )
 
 class KeyStore(context: Context) {
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = createEncryptedPrefs(context)
+
+    private fun createEncryptedPrefs(context: Context): SharedPreferences {
+        return try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            val encrypted = EncryptedSharedPreferences.create(
+                context,
+                ENCRYPTED_PREFS,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+            migrateIfNeeded(context, encrypted)
+            encrypted
+        } catch (e: Exception) {
+            // Keystore unavailable - fall back to plain storage rather than crash the IME.
+            context.getSharedPreferences(PLAIN_PREFS, Context.MODE_PRIVATE)
+        }
+    }
+
+    private fun migrateIfNeeded(context: Context, encrypted: SharedPreferences) {
+        val plain = context.getSharedPreferences(PLAIN_PREFS, Context.MODE_PRIVATE)
+        val plainIds = plain.getString(PREF_KEYS, null) ?: return
+        if (encrypted.getString(PREF_KEYS, null) != null) return
+        val editor = encrypted.edit()
+        for ((k, v) in plain.all) {
+            if (v is String) editor.putString(k, v)
+        }
+        editor.apply()
+        plain.edit().clear().apply()
+    }
 
     fun storeSecretKey(keyId: Long, armoredKey: String, passphrase: String) {
         if (passphrase.isEmpty()) throw CipherException("passphrase cannot be empty")
@@ -69,7 +102,8 @@ class KeyStore(context: Context) {
     private fun keyMeta(keyId: Long, field: String) = "key_${keyId}_$field"
 
     companion object {
-        private const val PREFS_NAME = "cipherkeys_keystore"
+        private const val PLAIN_PREFS = "cipherkeys_keystore"
+        private const val ENCRYPTED_PREFS = "cipherkeys_keystore_secure"
         private const val PREF_KEYS = "key_ids"
     }
 }

@@ -40,6 +40,7 @@ class KeyManager(private val keyStore: KeyStore) {
     fun importSecretKey(armoredKey: String, passphrase: String): KeyInfo {
         val key = PGPainless.readKeyRing().secretKeyRing(armoredKey)
             ?: throw CipherException("failed to read secret key from armored data")
+        verifyPassphrase(key, passphrase)
         val keyId = key.publicKey.keyID
         val info = keyInfo(keyId, key)
         keyStore.storeSecretKey(keyId, armoredKey, passphrase)
@@ -56,9 +57,11 @@ class KeyManager(private val keyStore: KeyStore) {
     }
 
     fun exportSecretKey(keyId: Long, passphrase: String): String {
-        val armored = keyStore.getArmoredKey(keyId)
+        val keyRing = keyStore.getSecretKeyRing(keyId)
             ?: throw CipherException("key not found")
-        return armored
+        verifyPassphrase(keyRing, passphrase)
+        return keyStore.getArmoredKey(keyId)
+            ?: throw CipherException("key not found")
     }
 
     fun deleteKey(keyId: Long) {
@@ -77,12 +80,15 @@ class KeyManager(private val keyStore: KeyStore) {
     }
 
     fun listKeys(): List<KeyInfo> {
-        return keyStore.listStoredKeys().map { stored ->
+        return keyStore.listStoredKeys().mapNotNull { stored ->
+            val ring = keyStore.getSecretKeyRing(stored.keyId)
+                ?: return@mapNotNull null
+            val info = PGPainless.inspectKeyRing(ring)
             KeyInfo(
                 keyId = stored.keyId,
                 userId = stored.userId,
-                created = 0L,
-                algorithm = ""
+                created = info.creationDate.time,
+                algorithm = info.algorithm.name
             )
         }
     }
@@ -95,5 +101,22 @@ class KeyManager(private val keyStore: KeyStore) {
             created = info.creationDate.time,
             algorithm = info.algorithm.name
         )
+    }
+
+    private fun verifyPassphrase(keyRing: PGPSecretKeyRing, passphrase: String) {
+        val secretKey = keyRing.secretKeys.next()
+        if (secretKey.keyEncryptionAlgorithm == org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags.NULL) {
+            throw CipherException("key is not passphrase-protected")
+        }
+        if (passphrase.isEmpty()) {
+            throw CipherException("passphrase cannot be empty")
+        }
+        val protector = org.pgpainless.key.protection.SecretKeyRingProtector
+            .unlockAnyKeyWith(org.pgpainless.util.Passphrase.fromPassword(passphrase))
+        try {
+            secretKey.extractPrivateKey(protector.getDecryptor(secretKey.keyID))
+        } catch (e: Exception) {
+            throw CipherException("incorrect passphrase")
+        }
     }
 }

@@ -98,13 +98,15 @@ class PgpEngine {
     fun decrypt(
         ciphertext: String,
         secretKey: PGPSecretKeyRing,
-        passphrase: String
-    ): String {
+        passphrase: String,
+        verificationCerts: List<PGPPublicKeyRing> = emptyList()
+    ): DecryptResult {
         val protector = SecretKeyRingProtector.unlockAnyKeyWith(
             Passphrase.fromPassword(passphrase)
         )
         val options = ConsumerOptions.get()
             .addDecryptionKey(secretKey, protector)
+        for (cert in verificationCerts) options.addVerificationCert(cert)
 
         return decryptInternal(ciphertext.toByteArray(Charsets.UTF_8), options)
     }
@@ -112,8 +114,9 @@ class PgpEngine {
     fun decryptTryAll(
         ciphertext: String,
         secretKeys: List<PGPSecretKeyRing>,
-        passphrase: String
-    ): String {
+        passphrase: String,
+        verificationCerts: List<PGPPublicKeyRing> = emptyList()
+    ): DecryptResult {
         val protector = SecretKeyRingProtector.unlockAnyKeyWith(
             Passphrase.fromPassword(passphrase)
         )
@@ -121,6 +124,7 @@ class PgpEngine {
         for (key in secretKeys) {
             options.addDecryptionKey(key, protector)
         }
+        for (cert in verificationCerts) options.addVerificationCert(cert)
         return decryptInternal(ciphertext.toByteArray(Charsets.UTF_8), options)
     }
 
@@ -165,7 +169,7 @@ class PgpEngine {
         stream.write(text.toByteArray(Charsets.UTF_8))
         stream.close()
         val result = String(out.toByteArray())
-        Log.d("PgpEngine", "sign output len=${result.length}, starts: ${result.take(60)}")
+        Log.d("PgpEngine", "sign output len=${result.length}")
         return result
     }
 
@@ -182,7 +186,6 @@ class PgpEngine {
             val options = ConsumerOptions.get()
             for (key in publicKeys) {
                 options.addVerificationCert(key)
-                Log.d("PgpEngine", "verifySigned: added key 0x${key.publicKey.keyID.toString(16)}")
             }
             val input = ByteArrayInputStream(signedMessage.toByteArray(Charsets.UTF_8))
             val output = ByteArrayOutputStream()
@@ -194,7 +197,6 @@ class PgpEngine {
             while (stream.read(buf).also { n = it } != -1) output.write(buf, 0, n)
             stream.close()
             val meta = stream.metadata
-            Log.d("PgpEngine", "verifySigned: verifiedSigs=${meta.verifiedSignatures.size}, encrypted=${meta.isEncrypted}")
             if (meta.verifiedSignatures.isNotEmpty()) {
                 val sig = meta.verifiedSignatures.first()
                 return VerificationResult(
@@ -326,7 +328,7 @@ class PgpEngine {
     private fun decryptInternal(
         cipherBytes: ByteArray,
         consumerOptions: ConsumerOptions
-    ): String {
+    ): DecryptResult {
         val input = ByteArrayInputStream(cipherBytes)
         val output = ByteArrayOutputStream()
 
@@ -345,9 +347,16 @@ class PgpEngine {
             throw CipherException("decryption failed - data is not encrypted")
         }
 
-        return String(output.toByteArray())
+        val signerKeyId = stream.metadata.verifiedSignatures.firstOrNull()
+            ?.signingKey?.fingerprint?.keyId
+        return DecryptResult(String(output.toByteArray()), signerKeyId)
     }
 }
+
+data class DecryptResult(
+    val plaintext: String,
+    val signerKeyId: Long?
+)
 
 data class VerificationResult(
     val keyId: Long,

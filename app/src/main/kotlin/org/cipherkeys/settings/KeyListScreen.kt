@@ -3,6 +3,9 @@ package org.cipherkeys.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.os.PersistableBundle
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,19 +20,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,7 +48,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import org.cipherkeys.cipher.CipherException
 import org.cipherkeys.cipher.KeyInfo
 import org.cipherkeys.cipher.KeyManager
 import org.cipherkeys.ui.CipherPrefs
@@ -55,6 +65,7 @@ fun KeyListScreen(
     val context = LocalContext.current
     var keys by remember { mutableStateOf(keyManager.listKeys()) }
     var showDeleteDialog by remember { mutableStateOf<Long?>(null) }
+    var showSecretExport by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(keys) {
         if (CipherPrefs.defaultKeyId == null && keys.isNotEmpty()) {
@@ -164,19 +175,18 @@ fun KeyListScreen(
                         Toast.makeText(context, "Failed to export public key", Toast.LENGTH_SHORT).show()
                     }
                 },
-                onCopySecretKey = {
-                    try {
-                        val sec = keyManager.exportSecretKey(key.keyId, "")
-                        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        cm.setPrimaryClip(ClipData.newPlainText("secretkey", sec))
-                        Toast.makeText(context, "Secret key copied - guard it carefully!", Toast.LENGTH_SHORT).show()
-                    } catch (_: Exception) {
-                        Toast.makeText(context, "Failed to export secret key", Toast.LENGTH_SHORT).show()
-                    }
-                },
+                onCopySecretKey = { showSecretExport = key.keyId },
                 onDelete = { showDeleteDialog = key.keyId },
             )
         }
+    }
+
+    if (showSecretExport != null) {
+        SecretExportDialog(
+            keyId = showSecretExport!!,
+            keyManager = keyManager,
+            onDismiss = { showSecretExport = null },
+        )
     }
 }
 
@@ -232,6 +242,74 @@ private fun TextButton(text: String, onClick: () -> Unit) {
     androidx.compose.material3.TextButton(onClick = onClick) {
         Text(text, style = MaterialTheme.typography.labelSmall)
     }
+}
+
+@Composable
+private fun SecretExportDialog(
+    keyId: Long,
+    keyManager: KeyManager,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    var passphrase by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Export Secret Key") },
+        text = {
+            Column {
+                Text(
+                    "Enter the key passphrase to confirm. The secret key will be copied to the clipboard.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = passphrase,
+                    onValueChange = { passphrase = it; error = null },
+                    label = { Text("Passphrase") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    isError = error != null,
+                    supportingText = error?.let { { Text(it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    try {
+                        val sec = keyManager.exportSecretKey(keyId, passphrase)
+                        val clip = ClipData.newPlainText("secretkey", sec)
+                        clip.description.extras = PersistableBundle().apply {
+                            putBoolean("android.content.extra.IS_SENSITIVE", true)
+                        }
+                        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        cm.setPrimaryClip(clip)
+                        Toast.makeText(context, "Secret key copied - guard it carefully!", Toast.LENGTH_LONG).show()
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            val current = cm.primaryClip?.getItemAt(0)?.text?.toString()
+                            if (current == sec) cm.clearPrimaryClip()
+                        }, 30000)
+                        onDismiss()
+                    } catch (e: CipherException) {
+                        error = e.message ?: "Export failed"
+                    } catch (_: Exception) {
+                        error = "Export failed"
+                    }
+                },
+            ) {
+                Text("Copy")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 @Composable

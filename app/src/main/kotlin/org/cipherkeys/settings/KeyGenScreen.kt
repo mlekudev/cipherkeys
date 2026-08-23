@@ -40,8 +40,8 @@ fun KeyGenScreen(
     var isLoading by remember { mutableStateOf(false) }
 
     val userId = if (email.isNotBlank()) "$name <$email>" else name
-    val canGenerate = name.isNotBlank() && passphrase.isNotBlank() &&
-        passphrase == confirmPassphrase
+    val passphraseOk = passphrase.length >= 8
+    val canGenerate = name.isNotBlank() && passphraseOk && passphrase == confirmPassphrase
 
     Column(
         modifier = Modifier
@@ -84,6 +84,12 @@ fun KeyGenScreen(
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             singleLine = true,
+            isError = passphrase.isNotEmpty() && !passphraseOk,
+            supportingText = {
+                if (passphrase.isNotEmpty() && !passphraseOk) {
+                    Text("Passphrase must be at least 8 characters")
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))

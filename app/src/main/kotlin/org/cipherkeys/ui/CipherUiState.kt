@@ -38,7 +38,7 @@ data class CipherState(
     val kbEmailMode: Boolean = false,
 )
 
-enum class PendingAction { ENCRYPT, DECRYPT, SIGN }
+enum class PendingAction { ENCRYPT, DECRYPT, SIGN, SEND }
 
 object CipherUiState {
     var state by mutableStateOf(CipherState())

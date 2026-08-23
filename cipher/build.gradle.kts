@@ -26,4 +26,5 @@ android {
 
 dependencies {
     api(libs.pgpainless.core)
+    implementation(libs.androidx.security.crypto)
 }
