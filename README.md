@@ -4,7 +4,7 @@ Android keyboard with PGP encryption.
 
 After installing, enable in **Settings > System > Keyboard > On-screen keyboard > CipherKeys**.
 
-**Latest release**: [cipherkeys 00029](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00029/cipherkeys-v00029.apk)
+**Latest release**: [cipherkeys 00030](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00030/cipherkeys-v00030.apk)
 
 ## Features
 
@@ -29,7 +29,8 @@ After installing, enable in **Settings > System > Keyboard > On-screen keyboard 
 - Passphrase input auto-resets keyboard to lowercase
 - Backspace repeat on long-press
 - Physical keyboard support: panel accepts external keyboard input, Ctrl+Enter submits
-- Numeric keypad layer via long-press ?123
+- Numeric keypad layer via long-press ?123, auto-selected for numeric fields
+- Email fields swap comma for @ key
 - Recipient picker with recent-first ordering and always-ask option
 - Skips re-encrypting already-encrypted messages
 - Interactive help system
@@ -67,6 +68,7 @@ After installing, enable in **Settings > System > Keyboard > On-screen keyboard 
 | 00027 | 2026-08-17 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00027/cipherkeys-v00027.apk) |
 | 00028 | 2026-08-17 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00028/cipherkeys-v00028.apk) |
 | 00029 | 2026-08-18 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00029/cipherkeys-v00029.apk) |
+| 00030 | 2026-08-23 | [APK](https://github.com/mlekudev/cipherkeys-releases/releases/download/v00030/cipherkeys-v00030.apk) |
 
 ## Updating with Obtanium
 
