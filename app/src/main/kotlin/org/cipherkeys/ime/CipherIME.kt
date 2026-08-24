@@ -42,6 +42,7 @@ import java.util.concurrent.Executors
 private const val PASSPHRASE_IDLE_MS = 5 * 60 * 1000L
 private const val SUBTYPE_QWERTY_ID = 0x439dc9f1.toInt()
 private const val SUBTYPE_DVORAK_ID = 0x439dc9f2.toInt()
+private const val SUBTYPE_RUSSIAN_ID = 0x439dc9f3.toInt()
 
 class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner {
 
@@ -151,7 +152,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
             val info = imm.enabledInputMethodList.firstOrNull { it.packageName == packageName } ?: return
             imm.setExplicitlyEnabledInputMethodSubtypes(
                 info.id,
-                intArrayOf(SUBTYPE_QWERTY_ID, SUBTYPE_DVORAK_ID)
+                intArrayOf(SUBTYPE_QWERTY_ID, SUBTYPE_DVORAK_ID, SUBTYPE_RUSSIAN_ID)
             )
         } catch (e: Exception) {
             Log.e("CipherIME", "enable subtypes error", e)

@@ -64,6 +64,9 @@ fun SettingsKeyboardScreen() {
                 LayoutRadio("Dvorak", "dvorak", layout) {
                     layout = it; CipherPrefs.updateKeyboardLayout(it)
                 }
+                LayoutRadio("Русский (ЙЦУКЕН)", "russian", layout) {
+                    layout = it; CipherPrefs.updateKeyboardLayout(it)
+                }
             }
         }
 

@@ -192,7 +192,11 @@ object CipherPrefs {
     }
 
     fun updateKeyboardLayout(v: String) {
-        keyboardLayout = if (v == "dvorak") "dvorak" else "qwerty"
+        keyboardLayout = when (v) {
+            "dvorak" -> "dvorak"
+            "russian" -> "russian"
+            else -> "qwerty"
+        }
         prefs?.edit()?.putString(KEYBOARD_LAYOUT, keyboardLayout)?.apply()
     }
 

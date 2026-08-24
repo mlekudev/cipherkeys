@@ -206,11 +206,21 @@ fun KeyboardView(
 
     val rows: List<List<KbKey>> = when (mode) {
         KbMode.ALPHA -> {
-            val dvorak = CipherPrefs.keyboardLayout == "dvorak"
-            val base = if (shift) {
-                if (dvorak) DVORAK_SHIFT else ALPHA_SHIFT
+            val layout = CipherPrefs.keyboardLayout
+            val base = if (CipherUiState.state.kbEmailMode) {
+                if (shift) ALPHA_SHIFT else ALPHA
+            } else if (shift) {
+                when (layout) {
+                    "dvorak" -> DVORAK_SHIFT
+                    "russian" -> RU_SHIFT
+                    else -> ALPHA_SHIFT
+                }
             } else {
-                if (dvorak) DVORAK else ALPHA
+                when (layout) {
+                    "dvorak" -> DVORAK
+                    "russian" -> RU
+                    else -> ALPHA
+                }
             }
             if (CipherUiState.state.kbEmailMode) {
                 base.map { row -> row.map { k -> if (k.label == ",") KbKey("@") else k } }
@@ -383,6 +393,9 @@ fun KeyboardView(
                 }
                 LayoutOption("Dvorak", CipherPrefs.keyboardLayout == "dvorak") {
                     selectLayout("dvorak")
+                }
+                LayoutOption("Русский (ЙЦУКЕН)", CipherPrefs.keyboardLayout == "russian") {
+                    selectLayout("russian")
                 }
             }
         }
@@ -624,6 +637,20 @@ private val DVORAK_SHIFT = listOf(
     listOf(KbKey("A"),KbKey("O"),KbKey("E"),KbKey("U"),KbKey("I"),KbKey("D"),KbKey("H"),KbKey("T"),KbKey("N"),KbKey("S")),
     listOf(KbKey("\u21E7"),KbKey("Q"),KbKey("J"),KbKey("K"),KbKey("X"),KbKey("B"),KbKey("M"),KbKey("W"),KbKey("V"),KbKey("\u232B")),
     listOf(KbKey("?123"),KbKey(":"),KbKey(" "),KbKey("Z"),KbKey("\u21B5")),
+)
+
+private val RU = listOf(
+    listOf(KbKey("й","\u00B9","1"),KbKey("ц","\u00B2","2"),KbKey("у","\u00B3","3"),KbKey("к","\u2074","4"),KbKey("е","ё","ё"),KbKey("н","\u2075","5"),KbKey("г","\u2076","6"),KbKey("ш","\u2077","7"),KbKey("щ","\u2078","8"),KbKey("з","\u2079","9"),KbKey("х","\u2070","0")),
+    listOf(KbKey("ф"),KbKey("ы"),KbKey("в"),KbKey("а"),KbKey("п"),KbKey("р"),KbKey("о"),KbKey("л"),KbKey("д"),KbKey("ж"),KbKey("э")),
+    listOf(KbKey("\u21E7"),KbKey("я"),KbKey("ч"),KbKey("с"),KbKey("м"),KbKey("и"),KbKey("т"),KbKey("ь","ъ","ъ"),KbKey("б"),KbKey("ю"),KbKey("\u232B")),
+    listOf(KbKey("?123"),KbKey(","),KbKey(" "),KbKey("."),KbKey("\u21B5")),
+)
+
+private val RU_SHIFT = listOf(
+    listOf(KbKey("Й","\u00B9","1"),KbKey("Ц","\u00B2","2"),KbKey("У","\u00B3","3"),KbKey("К","\u2074","4"),KbKey("Е","Ё","Ё"),KbKey("Н","\u2075","5"),KbKey("Г","\u2076","6"),KbKey("Ш","\u2077","7"),KbKey("Щ","\u2078","8"),KbKey("З","\u2079","9"),KbKey("Х","\u2070","0")),
+    listOf(KbKey("Ф"),KbKey("Ы"),KbKey("В"),KbKey("А"),KbKey("П"),KbKey("Р"),KbKey("О"),KbKey("Л"),KbKey("Д"),KbKey("Ж"),KbKey("Э")),
+    listOf(KbKey("\u21E7"),KbKey("Я"),KbKey("Ч"),KbKey("С"),KbKey("М"),KbKey("И"),KbKey("Т"),KbKey("Ь","Ъ","Ъ"),KbKey("Б"),KbKey("Ю"),KbKey("\u232B")),
+    listOf(KbKey("?123"),KbKey(","),KbKey(" "),KbKey("."),KbKey("\u21B5")),
 )
 
 private val SYMBOLS = listOf(
