@@ -626,14 +626,14 @@ private val ALPHA_SHIFT = listOf(
 )
 
 private val DVORAK = listOf(
-    listOf(KbKey("'"),KbKey(",", weight = 1f),KbKey(".", weight = 1f),KbKey("p"),KbKey("y"),KbKey("f"),KbKey("g"),KbKey("c"),KbKey("r"),KbKey("l")),
+    listOf(KbKey("'","\u00B9","1"),KbKey(",","\u00B2","2", weight = 1f),KbKey(".","\u00B3","3", weight = 1f),KbKey("p","\u2074","4"),KbKey("y","\u2075","5"),KbKey("f","\u2076","6"),KbKey("g","\u2077","7"),KbKey("c","\u2078","8"),KbKey("r","\u2079","9"),KbKey("l","\u2070","0")),
     listOf(KbKey("a"),KbKey("o"),KbKey("e"),KbKey("u"),KbKey("i"),KbKey("d"),KbKey("h"),KbKey("t"),KbKey("n"),KbKey("s")),
     listOf(KbKey("\u21E7"),KbKey("q"),KbKey("j"),KbKey("k"),KbKey("x"),KbKey("b"),KbKey("m"),KbKey("w"),KbKey("v"),KbKey("\u232B")),
     listOf(KbKey("?123"),KbKey(";"),KbKey(" "),KbKey("z"),KbKey("\u21B5")),
 )
 
 private val DVORAK_SHIFT = listOf(
-    listOf(KbKey("\""),KbKey("<", weight = 1f),KbKey(">", weight = 1f),KbKey("P"),KbKey("Y"),KbKey("F"),KbKey("G"),KbKey("C"),KbKey("R"),KbKey("L")),
+    listOf(KbKey("\"","\u00B9","1"),KbKey("<","\u00B2","2", weight = 1f),KbKey(">","\u00B3","3", weight = 1f),KbKey("P","\u2074","4"),KbKey("Y","\u2075","5"),KbKey("F","\u2076","6"),KbKey("G","\u2077","7"),KbKey("C","\u2078","8"),KbKey("R","\u2079","9"),KbKey("L","\u2070","0")),
     listOf(KbKey("A"),KbKey("O"),KbKey("E"),KbKey("U"),KbKey("I"),KbKey("D"),KbKey("H"),KbKey("T"),KbKey("N"),KbKey("S")),
     listOf(KbKey("\u21E7"),KbKey("Q"),KbKey("J"),KbKey("K"),KbKey("X"),KbKey("B"),KbKey("M"),KbKey("W"),KbKey("V"),KbKey("\u232B")),
     listOf(KbKey("?123"),KbKey(":"),KbKey(" "),KbKey("Z"),KbKey("\u21B5")),
