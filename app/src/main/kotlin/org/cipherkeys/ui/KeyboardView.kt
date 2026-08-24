@@ -4,6 +4,7 @@ import android.media.AudioAttributes
 import android.media.SoundPool
 import java.io.File
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -59,6 +61,7 @@ data class KbKey(
     val label: String,
     val hint: String? = null,
     val longPress: String? = null,
+    val weight: Float? = null,
 )
 
 private enum class KbMode { ALPHA, SYM, SYM2, NUM }
@@ -70,6 +73,7 @@ fun KeyboardView(
     onEnter: () -> Unit,
     onSpace: () -> Unit,
     onEnterLongPress: () -> Unit = {},
+    onLayoutChanged: (String) -> Unit = {},
     showLockHint: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -152,6 +156,7 @@ fun KeyboardView(
     var popoverSerial by remember { mutableStateOf(0L) }
     var shiftLastTap by remember { mutableStateOf(0L) }
     var symLastTap by remember { mutableStateOf(0L) }
+    var showLayoutSwitcher by remember { mutableStateOf(false) }
 
     val kill = CipherUiState.state.backspaceKill
     LaunchedEffect(kill) { backspaceRepeat = false }
@@ -201,7 +206,12 @@ fun KeyboardView(
 
     val rows: List<List<KbKey>> = when (mode) {
         KbMode.ALPHA -> {
-            val base = if (shift) ALPHA_SHIFT else ALPHA
+            val dvorak = CipherPrefs.keyboardLayout == "dvorak"
+            val base = if (shift) {
+                if (dvorak) DVORAK_SHIFT else ALPHA_SHIFT
+            } else {
+                if (dvorak) DVORAK else ALPHA
+            }
             if (CipherUiState.state.kbEmailMode) {
                 base.map { row -> row.map { k -> if (k.label == ",") KbKey("@") else k } }
             } else base
@@ -267,6 +277,10 @@ fun KeyboardView(
     }
 
     fun onLongPress(key: KbKey) {
+        if (key.label == " ") {
+            showLayoutSwitcher = !showLayoutSwitcher
+            return
+        }
         if (mode == KbMode.NUM && key.label == "0") {
             mode = KbMode.ALPHA; shift = false; shiftLocked = false
             CipherUiState.setKeyboardShift(false)
@@ -282,6 +296,14 @@ fun KeyboardView(
         key.longPress?.let { onChar(it) }
     }
 
+    fun selectLayout(layout: String) {
+        if (CipherPrefs.keyboardLayout != layout) {
+            CipherPrefs.updateKeyboardLayout(layout)
+            onLayoutChanged(layout)
+        }
+        showLayoutSwitcher = false
+    }
+
     val shiftDoubleTap = CipherPrefs.shiftLockMethod == "double-tap"
     val symDoubleTap = CipherPrefs.symLockMethod == "double-tap"
 
@@ -294,7 +316,7 @@ fun KeyboardView(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     row.forEach { key ->
                         val isSpecial = key.label.length > 1
-                        val w = if (mode == KbMode.NUM) {
+                        val w = key.weight ?: if (mode == KbMode.NUM) {
                             1f
                         } else when (key.label) {
                             "\u232B" -> 1.6f; "\u21B5" -> 1.6f
@@ -341,6 +363,29 @@ fun KeyboardView(
             }
         }
         } // key(mode)
+    }
+
+    if (showLayoutSwitcher) {
+        Popup(
+            alignment = Alignment.TopCenter,
+            onDismissRequest = { showLayoutSwitcher = false },
+            properties = PopupProperties(focusable = true),
+        ) {
+            Column(
+                modifier = Modifier
+                    .background(kbBg, RoundedCornerShape(10.dp))
+                    .padding(10.dp),
+            ) {
+                Text("Keyboard layout", color = keyFg, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Spacer(Modifier.height(4.dp))
+                LayoutOption("English (QWERTY)", CipherPrefs.keyboardLayout == "qwerty") {
+                    selectLayout("qwerty")
+                }
+                LayoutOption("Dvorak", CipherPrefs.keyboardLayout == "dvorak") {
+                    selectLayout("dvorak")
+                }
+            }
+        }
     }
 }
 
@@ -440,6 +485,7 @@ private fun RowScope.KeyboardKey(
                                             key.label == "\u21E7" ||
                                             key.label == "?123" ||
                                             key.label == "\u21B5" ||
+                                            key.label == " " ||
                                             (numMode && key.label == "0")
                                         launch {
                                             delay(CipherPrefs.longPressMs.toLong())
@@ -530,6 +576,28 @@ private fun RowScope.KeyboardKey(
     }
 }
 
+@Composable
+private fun LayoutOption(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 6.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            color = if (selected) Color(0xFF4CAF50) else Color.Gray,
+            fontSize = 16.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Text("\u2714", color = Color(0xFF4CAF50), fontSize = 16.sp)
+        }
+    }
+}
+
 private val ALPHA = listOf(
     listOf(KbKey("q","\u00B9","1"),KbKey("w","\u00B2","2"),KbKey("e","\u00B3","3"),KbKey("r","\u2074","4"),KbKey("t","\u2075","5"),KbKey("y","\u2076","6"),KbKey("u","\u2077","7"),KbKey("i","\u2078","8"),KbKey("o","\u2079","9"),KbKey("p","\u2070","0")),
     listOf(KbKey("a"),KbKey("s"),KbKey("d"),KbKey("f"),KbKey("g"),KbKey("h"),KbKey("j"),KbKey("k"),KbKey("l")),
@@ -542,6 +610,20 @@ private val ALPHA_SHIFT = listOf(
     listOf(KbKey("A"),KbKey("S"),KbKey("D"),KbKey("F"),KbKey("G"),KbKey("H"),KbKey("J"),KbKey("K"),KbKey("L")),
     listOf(KbKey("\u21E7"),KbKey("Z"),KbKey("X"),KbKey("C"),KbKey("V"),KbKey("B"),KbKey("N"),KbKey("M"),KbKey("\u232B")),
     listOf(KbKey("?123"),KbKey(","),KbKey(" "),KbKey("."),KbKey("\u21B5")),
+)
+
+private val DVORAK = listOf(
+    listOf(KbKey("'"),KbKey(",", weight = 1f),KbKey(".", weight = 1f),KbKey("p"),KbKey("y"),KbKey("f"),KbKey("g"),KbKey("c"),KbKey("r"),KbKey("l")),
+    listOf(KbKey("a"),KbKey("o"),KbKey("e"),KbKey("u"),KbKey("i"),KbKey("d"),KbKey("h"),KbKey("t"),KbKey("n"),KbKey("s")),
+    listOf(KbKey("\u21E7"),KbKey("q"),KbKey("j"),KbKey("k"),KbKey("x"),KbKey("b"),KbKey("m"),KbKey("w"),KbKey("v"),KbKey("\u232B")),
+    listOf(KbKey("?123"),KbKey(";"),KbKey(" "),KbKey("z"),KbKey("\u21B5")),
+)
+
+private val DVORAK_SHIFT = listOf(
+    listOf(KbKey("\""),KbKey("<", weight = 1f),KbKey(">", weight = 1f),KbKey("P"),KbKey("Y"),KbKey("F"),KbKey("G"),KbKey("C"),KbKey("R"),KbKey("L")),
+    listOf(KbKey("A"),KbKey("O"),KbKey("E"),KbKey("U"),KbKey("I"),KbKey("D"),KbKey("H"),KbKey("T"),KbKey("N"),KbKey("S")),
+    listOf(KbKey("\u21E7"),KbKey("Q"),KbKey("J"),KbKey("K"),KbKey("X"),KbKey("B"),KbKey("M"),KbKey("W"),KbKey("V"),KbKey("\u232B")),
+    listOf(KbKey("?123"),KbKey(":"),KbKey(" "),KbKey("Z"),KbKey("\u21B5")),
 )
 
 private val SYMBOLS = listOf(

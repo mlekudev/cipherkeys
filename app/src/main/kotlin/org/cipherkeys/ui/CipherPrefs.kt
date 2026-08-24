@@ -27,6 +27,7 @@ object CipherPrefs {
     private const val ENCRYPT_TO_SELF = "encrypt_to_self"
     private const val DEFAULT_KEY = "default_key"
     private const val ALWAYS_ASK_RECIPIENTS = "always_ask_recipients"
+    private const val KEYBOARD_LAYOUT = "keyboard_layout"
 
     private const val DEFAULT_KEY_HEIGHT = 47
     private const val DEFAULT_PANEL_LINES = 4
@@ -82,6 +83,9 @@ object CipherPrefs {
     var alwaysAskRecipients by mutableStateOf(true)
         private set
 
+    var keyboardLayout by mutableStateOf("qwerty")
+        private set
+
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         keyHeightDp = prefs!!.getInt(KEY_HEIGHT, DEFAULT_KEY_HEIGHT)
@@ -101,6 +105,7 @@ object CipherPrefs {
         val defaultId = prefs!!.getLong(DEFAULT_KEY, -1L)
         defaultKeyId = if (defaultId >= 0) defaultId else null
         alwaysAskRecipients = prefs!!.getBoolean(ALWAYS_ASK_RECIPIENTS, true)
+        keyboardLayout = prefs!!.getString(KEYBOARD_LAYOUT, "qwerty") ?: "qwerty"
     }
 
     fun updateKeyHeight(value: Int) {
@@ -184,6 +189,11 @@ object CipherPrefs {
     fun updateAlwaysAskRecipients(v: Boolean) {
         alwaysAskRecipients = v
         prefs?.edit()?.putBoolean(ALWAYS_ASK_RECIPIENTS, v)?.apply()
+    }
+
+    fun updateKeyboardLayout(v: String) {
+        keyboardLayout = if (v == "dvorak") "dvorak" else "qwerty"
+        prefs?.edit()?.putString(KEYBOARD_LAYOUT, keyboardLayout)?.apply()
     }
 
     fun exportPrefs(): Map<String, String> = mapOf(

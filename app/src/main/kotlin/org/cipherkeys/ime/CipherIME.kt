@@ -40,6 +40,8 @@ import org.cipherkeys.ui.PendingAction
 import java.util.concurrent.Executors
 
 private const val PASSPHRASE_IDLE_MS = 5 * 60 * 1000L
+private const val SUBTYPE_QWERTY_ID = 0x439dc9f1.toInt()
+private const val SUBTYPE_DVORAK_ID = 0x439dc9f2.toInt()
 
 class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner {
 
@@ -140,11 +142,42 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
         } catch (e: Exception) {
             Log.e("CipherIME", "onCreate detection error", e)
         }
+        enableAllSubtypes()
+    }
+
+    private fun enableAllSubtypes() {
+        try {
+            val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            val info = imm.enabledInputMethodList.firstOrNull { it.packageName == packageName } ?: return
+            imm.setExplicitlyEnabledInputMethodSubtypes(
+                info.id,
+                intArrayOf(SUBTYPE_QWERTY_ID, SUBTYPE_DVORAK_ID)
+            )
+        } catch (e: Exception) {
+            Log.e("CipherIME", "enable subtypes error", e)
+        }
     }
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
         updateHardwareKeyboardState()
+    }
+
+    private fun syncKeyboardLayoutSubtype() {
+        try {
+            val target = CipherPrefs.keyboardLayout
+            val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            val current = imm.currentInputMethodSubtype
+            if (current != null && current.physicalKeyboardHintLayoutType == target) return
+            val info = imm.enabledInputMethodList.firstOrNull {
+                it.packageName == packageName
+            } ?: return
+            val subtype = imm.getEnabledInputMethodSubtypeList(info, true)
+                .firstOrNull { it.physicalKeyboardHintLayoutType == target } ?: return
+            switchInputMethod(info.id, subtype)
+        } catch (e: Exception) {
+            Log.e("CipherIME", "subtype switch error", e)
+        }
     }
 
     override fun onEvaluateInputViewShown(): Boolean {
@@ -397,6 +430,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
                                 }
                             }
                         },
+                        onLayoutChanged = { syncKeyboardLayoutSubtype() },
                         showLockHint = CipherUiState.state.isActive && CipherUiState.state.selectedRecipientIds.isNotEmpty(),
                     )
                     }
@@ -659,6 +693,7 @@ class CipherIME : InputMethodService(), LifecycleOwner, SavedStateRegistryOwner 
 
     override fun onStartInput(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInput(editorInfo, restarting)
+        syncKeyboardLayoutSubtype()
         if (CipherUiState.state.pendingAction == null) {
             CipherUiState.resetKeyboardForInput(isPasswordInput(editorInfo), isNumericInput(editorInfo), isEmailInput(editorInfo))
         }

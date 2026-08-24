@@ -41,10 +41,32 @@ fun SettingsKeyboardScreen() {
     var symReturn by remember { mutableStateOf(CipherPrefs.symAutoReturn) }
     var autoCap by remember { mutableStateOf(CipherPrefs.autoCapitalize) }
     var longPress by remember { mutableIntStateOf(CipherPrefs.longPressMs) }
+    var layout by remember { mutableStateOf(CipherPrefs.keyboardLayout) }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
     ) {
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Keyboard layout", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Also sets the system layout for physical keyboards",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                LayoutRadio("English (QWERTY)", "qwerty", layout) {
+                    layout = it; CipherPrefs.updateKeyboardLayout(it)
+                }
+                LayoutRadio("Dvorak", "dvorak", layout) {
+                    layout = it; CipherPrefs.updateKeyboardLayout(it)
+                }
+            }
+        }
+
         SettingToggle("Haptic feedback", "Vibrate on key press", haptic,
             { haptic = it; CipherPrefs.updateHapticEnabled(it) })
 
@@ -166,6 +188,17 @@ private fun LockMethodSelector(title: String, selected: String, onSelect: (Strin
 
 @Composable
 private fun LockRadio(label: String, value: String, selected: String, onSelect: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+        RadioButton(
+            selected = selected == value,
+            onClick = { onSelect(value) },
+        )
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+@Composable
+private fun LayoutRadio(label: String, value: String, selected: String, onSelect: (String) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
         RadioButton(
             selected = selected == value,
