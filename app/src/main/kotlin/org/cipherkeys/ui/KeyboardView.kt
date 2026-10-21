@@ -668,8 +668,8 @@ private val SYMBOLS2 = listOf(
 )
 
 private val NUMERIC = listOf(
-    listOf(KbKey("7"),KbKey("8"),KbKey("9"),KbKey("("),KbKey(")")),
+    listOf(KbKey("1"),KbKey("2"),KbKey("3"),KbKey("("),KbKey(")")),
     listOf(KbKey("4"),KbKey("5"),KbKey("6"),KbKey("+"),KbKey("-")),
-    listOf(KbKey("1"),KbKey("2"),KbKey("3"),KbKey("*"),KbKey("/")),
-    listOf(KbKey("0", hint = "abc"),KbKey("."),KbKey(" "),KbKey("\u232B"),KbKey("\u21B5")),
+    listOf(KbKey("7"),KbKey("8"),KbKey("9"),KbKey("*"),KbKey("/")),
+    listOf(KbKey("."),KbKey("0", hint = "abc"),KbKey(" "),KbKey("\u232B"),KbKey("\u21B5")),
 )
